@@ -2,11 +2,11 @@ const std = @import("std");
 const c = @cImport(@cInclude("SDL2/sdl.h"));
 const app = @import("lib/app.zig");
 
-pub fn init() void {
+fn init() void {
     std.debug.print("hello\n", .{});
 }
 
-pub fn tick(ren: *c.SDL_Renderer) void {
+fn tick(ren: *c.SDL_Renderer) void {
     _ = c.SDL_RenderClear(ren);
     _ = c.SDL_SetRenderDrawColor(
         ren,
@@ -15,7 +15,7 @@ pub fn tick(ren: *c.SDL_Renderer) void {
         255,
         255,
     );
-    std.debug.print("[LOG] FRAME\n", .{});
+    _ = c.SDL_RenderPresent(ren);
 }
 
 pub fn main() !void {

@@ -9,6 +9,7 @@ pub const app_desc = struct {
     height: i32 = 50,
     tile_width: i32 = 8,
     tile_height: i32 = 8,
+    delta: f64 = 0.0,
 
     // user defined functions
     init: ?*const fn () void = null,
@@ -43,9 +44,14 @@ pub fn run(app: app_desc) void {
     if (app.init) |init| {
         init();
     }
+    var a: u32 = 0;
+    var b: u32 = 0;
+    var delta: f64 = 0;
 
     var quit = false;
     while (!quit) {
+        a = c.SDL_GetTicks();
+        delta = @as(f64, @floatFromInt(a - b));
         var event: c.SDL_Event = undefined;
         while (c.SDL_PollEvent(&event) != 0) {
             switch (event.type) {
@@ -55,10 +61,13 @@ pub fn run(app: app_desc) void {
                 else => {},
             }
         }
-        if (app.tick) |tick| {
-            if (renderer) |ren| {
-                tick(ren);
+        if (delta > @divTrunc(1000.0, 60.0)) {
+            if (app.tick) |tick| {
+                if (renderer) |ren| {
+                    tick(ren);
+                }
             }
         }
+        b = a;
     }
 }
