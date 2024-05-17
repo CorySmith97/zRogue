@@ -1,0 +1,89 @@
+Project Name: zRogue
+
+
+Group size: One. Just me.
+
+
+Abstract: A simple, lightwork game framework designed to help someone build a simple
+roguelike game. The framework will provide the scaffolding to do windowing,
+input, and ascii rendering. In addition to the framework, there will be a 
+simple website that will provide a tutorial of how to make a simple roguelike 
+game. The purpose is to help bring people to the zig programming language.
+
+
+Background Knowledge: With Zig I would consider myself slightly above that 
+of a novice. With things such as SDL I have familiarity but have never built
+a full application. With the last part of Emscripten is a new technology to 
+me.
+
+
+Description: Zig is a language that has the potential to change the world, 
+but it needs more momentum. Low level languages have a stigma to be hard.
+Creating something that provides a learning enviornment for someone new to 
+build a simple game with the language can help break that barrier. 
+
+
+zRogue will be a library that will have seperate submodules. These modules
+will handle different important aspects of a game. This will also be able 
+to be compiled and used as a shared library in zig, or just used as copy/paste
+library in a project. There are several tutorial type things for zig, but many
+of them tend to be higher level concepts meant for more advanced programmers.
+The most important thing that this can do is bring more people to the language.
+Even bringing 1 new programmer to the language would be a win. Zig is able to 
+cross-compile with c, and natively use c libraries. There are more powerful 
+c libraries to accomplish these things that have been around for decades,
+however there are no libraries built in zig for zig, with that style of programming.
+This is intended to be a new age approach. 
+
+The target audience would be new programmers. Those who have ambitions to work 
+with lower level languages, and are coming from dynamic language backgrounds. As
+the product is free, it will be hosted on github pages, making it possible for 
+anyone to partake. This will hopefully lower the bar of entry.
+
+As this will be a library along with a website all code, and pages will be hosted
+on github directly. Everything will be developed locally, and will at first only 
+suppport mac. Given time through the semester, I plan to work on ease of cross-
+compilation with windows. 
+
+Those who want to use this, will read and follow along with the website. 
+
+The project's initial scope is small. When a simple gameplay loop is available, 
+then the plan is to work on writing and making the tutorial part. This loop will
+be windowing, rendering, input and simple game systems such as characters/enemies.
+
+
+Significance: In terms of significance, what the creator of the language Zig, 
+Andrew Kelley, has said to those who want to contribute to the language, the 
+most important thing the foundation asks is for people to build projects in the
+language. It is a way to contribute to the language as it is being created. 
+
+For my life, showing and building an api as well as documentation for that api
+will help me do what I want to one day do, which is build internal tools/libraries
+for companies. 
+
+
+New Computer Science Topics: API design is a build thing I have never had to do
+before. Rendering, and opengl stuff will mostly be new for me. Documentation
+is another new thing for me. I've never had to explain my large code bases 
+before, but now that is not an option. Emscripten is also new. I've never had 
+to embed a binary in a webpage before. 
+
+
+Interestingness: This is rebuilding a project that got me interested in 
+programming lower level languages as a whole. It is something that I find 
+great excitement as it is sharing this field with others in an approachable
+way. I also very much like roguelike games, and building tools to build other 
+things. Zig is also something I love using.
+
+Schedule: The project is split up into two 5 week periods with a remainder 2 week
+period. The first 5 weeks are to build the outline and basic features of the 
+library. The second 5 weeks are to build a simple game along with find bugs 
+within the library and fix them as I build a simple generated map with monsters.
+The last 2 week period is designed to port the simple app to the web, as well
+as use MDbooks to write the tutorial. This is fast because MDbook allows
+you to write simple books in markdown. 
+
+
+Resources: Macbook, Zig (Master branch), ZLS (Zig language server), Neovim,
+Zig discord server, https://bfnightly.bracketproductions.com/ (for inspiration,
+not to copy).
