@@ -11,8 +11,16 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
     exe.linkSystemLibrary("sdl2");
+    exe.linkSystemLibrary("sdl2_image");
+    exe.linkFramework("opengl");
+    exe.linkSystemLibrary("epoxy");
     exe.linkLibC();
+    exe.addCSourceFiles(.{
+        .files = &[_][]const u8{"lib/stb_impl.c"},
+    });
+    exe.addIncludePath(.{ .path = "lib" });
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);

@@ -1,25 +1,15 @@
 const std = @import("std");
+const arena = std.heap.ArenaAllocator;
 const c = @cImport(@cInclude("SDL2/sdl.h"));
-const app = @import("lib/app.zig");
+const app = @import("zRogue.zig");
+const run = app.run;
 
-fn init() void {
-    std.debug.print("hello\n", .{});
-}
+fn init() void {}
 
-fn tick(ren: *c.SDL_Renderer) void {
-    _ = c.SDL_RenderClear(ren);
-    _ = c.SDL_SetRenderDrawColor(
-        ren,
-        255,
-        100,
-        255,
-        255,
-    );
-    _ = c.SDL_RenderPresent(ren);
-}
+fn tick() void {}
 
 pub fn main() !void {
-    app.run(.{
+    try run(.{
         .title = "test",
         .init = init,
         .tick = tick,

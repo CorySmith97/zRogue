@@ -1,8 +1,12 @@
-#version core 330
+#version 330 core
+out vec4 FragColor;
+  
+in vec3 ourColor;
+in vec2 TexCoord;
 
-in vec3 pos;
+uniform sampler2D ourTexture;
 
 void main()
 {
-    gl_Position = vec4(pos, 1.0);
+    FragColor = texture(ourTexture, TexCoord);
 }
