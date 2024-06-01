@@ -1,7 +1,7 @@
 const std = @import("std");
 const c = @cImport({
     @cInclude("stb_image.h");
-    @cInclude("SDL2/sdl.h");
+    @cInclude("SDL2/SDL.h");
     @cInclude("epoxy/gl.h");
 });
 
@@ -53,4 +53,10 @@ pub fn getGLContext(self: *Self) !void {
 
 pub fn swapWindow(self: *Self) void {
     c.SDL_GL_SwapWindow(self.window);
+}
+
+pub fn drawBackgroundColor(self: *Self, r: f32, g: f32, b: f32) void {
+    _ = self;
+    c.glClearColor(r, g, b, 1.0);
+    c.glClear(c.GL_COLOR_BUFFER_BIT);
 }

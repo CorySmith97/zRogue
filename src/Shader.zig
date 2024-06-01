@@ -1,6 +1,6 @@
 const std = @import("std");
 const c = @cImport({
-    @cInclude("SDL2/sdl.h");
+    @cInclude("SDL2/SDL.h");
     @cInclude("epoxy/gl.h");
 });
 

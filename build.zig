@@ -12,9 +12,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    exe.linkSystemLibrary("sdl2");
-    exe.linkSystemLibrary("sdl2_image");
-    exe.linkFramework("opengl");
+    exe.linkSystemLibrary("SDL2");
     exe.linkSystemLibrary("epoxy");
     exe.linkLibC();
     exe.addCSourceFiles(.{
