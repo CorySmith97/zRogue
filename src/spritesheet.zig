@@ -9,6 +9,10 @@ pub const Color = struct {
     b: f32,
 };
 
+pub const WHITE = Color{ .r = 1.0, .g = 1.0, .b = 1.0 };
+pub const BLACK = Color{ .r = 0.0, .g = 0.0, .b = 0.0 };
+pub const GREEN = Color{ .r = 0.0, .g = 1.0, .b = 0.0 };
+
 fn makeVao(points: [4][10]f32) u32 {
     const indices = [_][3]u32{
         [_]u32{ 0, 1, 2 },
@@ -64,14 +68,13 @@ pub fn init(t: i32, tW: i32, tH: i32, sW: i32, sH: i32) Self {
 }
 
 pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) void {
-    const neg_cell_y = 0 - cell_y;
     const ascii_tex_pos_x = ascii_ch % 16 + 1;
     const ascii_tex_pos_y = ascii_ch / 16;
 
     const x = 15 - @as(f32, @floatFromInt(ascii_tex_pos_x));
     const y = 15 - @as(f32, @floatFromInt(ascii_tex_pos_y));
     const pos_x = 0.05 * cell_x;
-    const pos_y = 0.08 * neg_cell_y;
+    const pos_y = 0.08 * (-cell_y);
     std.debug.print("Ascii Pos: {} {}, x y pos {} {} cell pos {} {} pos xy {} {}\n", .{ ascii_tex_pos_x, ascii_tex_pos_y, x, y, cell_x, cell_y, pos_x, pos_y });
     const vertices = [_][10]f32{
         [_]f32{

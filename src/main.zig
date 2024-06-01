@@ -9,17 +9,17 @@ fn init() void {}
 fn tick() void {
     std.debug.print("Stuff from main\n", .{});
     sh.drawSprite(
-        20,
-        40,
-        .{ .r = 1.0, .g = 0.1, .b = 1.0 },
-        .{ .r = 0.0, .g = 0.0, .b = 0.0 },
+        2,
+        10,
+        sh.GREEN,
+        sh.BLACK,
         'g',
     );
 }
 
 pub fn main() !void {
     try run(.{
-        .title = "test",
+        .title = "BIG BOOTY",
         .init = init,
         .tick = tick,
     });

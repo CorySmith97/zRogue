@@ -7,13 +7,13 @@ const c = @cImport({
 
 const Self = @This();
 
-title: []const u8,
+title: [*c]const u8,
 width: i32,
 height: i32,
 window: ?*c.SDL_Window = undefined,
 context: c.SDL_GLContext = undefined,
 
-pub fn init(title: []const u8, width: i32, height: i32) Self {
+pub fn init(title: [*c]const u8, width: i32, height: i32) Self {
     return .{
         .title = title,
         .width = width,

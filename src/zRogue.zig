@@ -37,7 +37,7 @@ pub const AppDesc = struct {
 // in order to help keep this clean.
 pub fn run(app: AppDesc) !void {
     var img = try Image.init("src/assets/vga8x16.jpg");
-    var window = w.init("Test", 800, 600);
+    var window = w.init(app.title, 800, 600);
     window.createWindow();
     defer window.deinit();
 
