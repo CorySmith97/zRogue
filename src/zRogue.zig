@@ -83,7 +83,7 @@ pub fn run(app: AppDesc) !void {
             c.glPolygonMode(c.GL_FRONT_AND_BACK, c.GL_FILL);
         }
 
-        window.drawBackgroundColor(0.2, 0.4, 0.23);
+        window.drawBackgroundColor(0.0, 0.0, 0.0);
         c.glUseProgram(shd.id);
         c.glActiveTexture(c.GL_TEXTURE0);
         c.glBindTexture(c.GL_TEXTURE_2D, texture);
