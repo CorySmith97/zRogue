@@ -2,3 +2,4 @@
 /zig-cache
 .DS_Store
 /src/.DS_Store
+/lib
