@@ -7,19 +7,25 @@ const sh = @import("spritesheet.zig");
 fn init() void {}
 
 fn tick() void {
-    std.debug.print("Stuff from main\n", .{});
     sh.drawSprite(
         2,
-        10,
+        24,
         sh.GREEN,
         sh.BLACK,
         'g',
+    );
+    sh.drawSprite(
+        4,
+        10,
+        sh.WHITE,
+        sh.BLACK,
+        'o',
     );
 }
 
 pub fn main() !void {
     try run(.{
-        .title = "BIG BOOTY",
+        .title = "zRogue",
         .init = init,
         .tick = tick,
     });
