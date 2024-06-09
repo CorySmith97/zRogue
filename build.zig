@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) void {
     exe.addCSourceFiles(.{
         .files = &[_][]const u8{"lib/stb_impl.c"},
     });
-    exe.addIncludePath(.{ .path = "lib" });
+    exe.addIncludePath(.{ .path = "lib/" });
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
