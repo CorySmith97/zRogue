@@ -1,7 +1,5 @@
 const std = @import("std");
-const c = @cImport({
-    @cInclude("epoxy/gl.h");
-});
+const c = @import("c.zig");
 
 pub const Color = struct {
     r: f32,
@@ -75,7 +73,6 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
     const y = 15 - @as(f32, @floatFromInt(ascii_tex_pos_y));
     const pos_x = 0.05 * cell_x;
     const pos_y = 0.08 * (-cell_y);
-    std.debug.print("Ascii Pos: {} {}, x y pos {} {} cell pos {} {} pos xy {} {}\n", .{ ascii_tex_pos_x, ascii_tex_pos_y, x, y, cell_x, cell_y, pos_x, pos_y });
     const vertices = [_][10]f32{
         [_]f32{
             // position

@@ -1,8 +1,5 @@
 const std = @import("std");
-const c = @cImport({
-    @cInclude("stb_image.h");
-    @cInclude("epoxy/gl.h");
-});
+const c = @import("c.zig");
 
 const Self = @This();
 width: usize,

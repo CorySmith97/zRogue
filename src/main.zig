@@ -17,8 +17,8 @@ fn tick() void {
     sh.drawSprite(
         4,
         10,
+        sh.GREEN,
         sh.WHITE,
-        sh.BLACK,
         'o',
     );
 }

@@ -1,9 +1,5 @@
 const std = @import("std");
-const c = @cImport({
-    @cInclude("stb_image.h");
-    @cInclude("SDL2/SDL.h");
-    @cInclude("epoxy/gl.h");
-});
+const c = @import("c.zig");
 
 const Self = @This();
 

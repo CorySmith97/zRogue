@@ -8,11 +8,7 @@
 
 // Imports
 const std = @import("std");
-const c = @cImport({
-    @cInclude("stb_image.h");
-    @cInclude("SDL2/SDL.h");
-    @cInclude("epoxy/gl.h");
-});
+const c = @import("c.zig");
 const Image = @import("image.zig");
 const Shader = @import("Shader.zig");
 const w = @import("window.zig");
@@ -50,6 +46,7 @@ pub fn run(app: AppDesc) !void {
     if (app.init) |init| {
         init();
     }
+    std.debug.print("{}\n", .{c.epoxy_gl_version()});
     var a: u32 = 0;
     var b: u32 = 0;
     var delta: f64 = 0;

@@ -1,8 +1,5 @@
 const std = @import("std");
-const c = @cImport({
-    @cInclude("SDL2/SDL.h");
-    @cInclude("epoxy/gl.h");
-});
+const c = @import("c.zig");
 
 const Self = @This();
 id: u32,
@@ -15,7 +12,7 @@ pub fn init(vs_path: []const u8, fs_path: []const u8) !Self {
     var vs_file = try std.fs.cwd().openFile(vs_path, .{});
     defer vs_file.close();
     const vs_file_size = try vs_file.getEndPos();
-    const vs_buffer = try allocator.alloc(u8, vs_file_size);
+    const vs_buffer = try allocator.alloc(u8, @intCast(vs_file_size));
     const vs_bytes = try vs_file.readAll(vs_buffer);
     _ = vs_bytes;
     const vs: u32 = c.glCreateShader(c.GL_VERTEX_SHADER);
@@ -26,7 +23,7 @@ pub fn init(vs_path: []const u8, fs_path: []const u8) !Self {
     var fs_file = try std.fs.cwd().openFile(fs_path, .{});
     defer fs_file.close();
     const fs_file_size = try fs_file.getEndPos();
-    const fs_buffer = try allocator.alloc(u8, fs_file_size);
+    const fs_buffer = try allocator.alloc(u8, @intCast(fs_file_size));
     const fs_bytes = try fs_file.readAll(fs_buffer);
     _ = fs_bytes;
     const fs: u32 = c.glCreateShader(c.GL_FRAGMENT_SHADER);

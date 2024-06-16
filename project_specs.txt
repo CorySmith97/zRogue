@@ -1,0 +1,32 @@
+Page 1: Title Page: SRS Project Name. Team Members, Description of project
+
+Section 1: Introduction: Purpose, Scope, Overview, User Profiles, & Workflows – from proposal
+Include what standards you will be following: Coding, Design, Learning Model, Architecture, Quality Assurance Characteristics and Metrics, Legal & Security Risks.
+
+Section 2a: Requirements
+Remember that requirement have a key word, “shall”, and additional features have the words “could, should”. A requirement is specific to one purpose, and avoids ambiguity. This mean only the word “shall”, not will, must, should, could, or would. There shall not be the word “shall not” in your requirements. You may sub-bullet additional clarification.
+Requirements are written in 3rd person perspective, in relationship to the applications.
+Success Measurement for that requirement (How do you know that is has been done and met?) Knowing when a job is done is just as important as knowing how to verify the job was done correctly. Requirement success is knowing that you have fulfilled the requirement, let the implementer know when to stop programming, it is the stopping point. The verification is how to test if the requirement was done correctly.
+
+Section 2b: Stretch Requirements
+Stretch goals are requirements, but can use the words: must, will, should, could, would, etc.
+
+Section 3: Design Overview of the Product.
+
+Workflow: A workflow is how the user is going to use the software. The user will start off with X, Y, Z inputs, go through Process A, get outputs. Use those outputs for input to Process B, and so on. Typically, you can map requirements to the different phases of the workflow. A schedule is the time order you will be doing to complete your project. Schedules shall not be in the Requirements document.
+
+Resources: You listed a series of resources in your proposal, how are you going to use them? Where do they fit in your product? How do all the part interconnect? What 3rd party software, packages, and libraries will be involved in the building, operation and delivery of the software. What tiers will it be using (front end, peer-to-peer, client/server, multi-tier, etc.).
+
+Data at Rest: How are you going to store user information? Both the user’s profile (login, contact, etc.), along with the data they will generate (application data). Will it be a file, database?
+
+Data on the Wire: How will the information be saved? Transmitted back to a central location? Where will the process take place?
+
+Data State: Provide a process flow, state flow diagram or some other design diagram. This goes back to the work flow. This is the map of where the data flow through the system.
+HMI/HCI/GUI: Provide a prototype (drawing, pic, etc) of what the user will see while using the application
+Pictures, Diagrams, tables, etc all are very useful.
+
+Section 4: Verification: How will the requirements be tested.
+
+Demo: How are you demonstrate that your application works as designed? What data will you use? What steps will verify the requirements?
+Testing: Each requirements needs to be verified. This is more than just restating the requirements as a “To Do” statement.  I.e. “Verify that App shall allow the user to save input”.  Explain how the requirement will be fulfilled, along with criteria defining the range of acceptability. Also if applicable, define when the requirement is not fulfilled.
+
