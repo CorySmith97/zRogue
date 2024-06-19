@@ -10,6 +10,20 @@ pub const Color = struct {
 pub const WHITE = Color{ .r = 1.0, .g = 1.0, .b = 1.0 };
 pub const BLACK = Color{ .r = 0.0, .g = 0.0, .b = 0.0 };
 pub const GREEN = Color{ .r = 0.0, .g = 1.0, .b = 0.0 };
+pub const MAGENTA = Color{ .r = 0.8, .g = 0.0, .b = 0.35 };
+pub const PURPLE = Color{ .r = 1.0, .g = 0.0, .b = 1.0 };
+pub const MUSTARD = Color{ .r = 0.9, .g = 0.65, .b = 0.07 };
+pub const YELLOW = Color{ .r = 1.0, .g = 1.0, .b = 0.0 };
+pub const ORANGE = Color{ .r = 1.0, .g = 0.65, .b = 0.0 };
+pub const TEAL = Color{ .r = 0.0, .g = 1.0, .b = 0.875 };
+pub const DARK_BLUE = Color{ .r = 0.070, .g = 0.375, .b = 0.333 };
+pub const PASTEL_GREEN = Color{ .r = 0.575, .g = 0.9, .b = 0.75 };
+pub const PASTEL_PINK = Color{ .r = 0.9, .g = 0.575, .b = 0.7 };
+pub const PASTEL_RED = Color{ .r = 0.95, .g = 0.575, .b = 0.575 };
+pub const PASTEL_PURPLE = Color{ .r = 0.9, .g = 0.575, .b = 0.9 };
+pub const PASTEL_BLUE = Color{ .r = 0.575, .g = 0.77, .b = 0.9 };
+pub const PASTEL_YELLOW = Color{ .r = 0.9, .g = 0.9, .b = 0.575 };
+pub const PASTEL_ORANGE = Color{ .r = 0.9, .g = 0.75, .b = 0.575 };
 
 fn makeVao(points: [4][10]f32) u32 {
     const indices = [_][3]u32{
@@ -66,13 +80,16 @@ pub fn init(t: i32, tW: i32, tH: i32, sW: i32, sH: i32) Self {
 }
 
 pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) void {
-    const ascii_tex_pos_x = ascii_ch % 16 + 1;
+    const ascii_tex_pos_x = ascii_ch % 16;
     const ascii_tex_pos_y = ascii_ch / 16;
 
-    const x = 15 - @as(f32, @floatFromInt(ascii_tex_pos_x));
+    const x = @as(f32, @floatFromInt(ascii_tex_pos_x));
     const y = 15 - @as(f32, @floatFromInt(ascii_tex_pos_y));
     const pos_x = 0.05 * cell_x;
     const pos_y = 0.08 * (-cell_y);
+    const tex_x_offset = 1.0 / 16.0;
+    const tex_y_offset = 1.0 / 16.0;
+
     const vertices = [_][10]f32{
         [_]f32{
             // position
@@ -87,8 +104,8 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             bg.g,
             bg.b,
             // texcoord
-            0.0625 + 0.0625 * x,
-            0.0625 + 0.0625 * y,
+            tex_x_offset * (x + 1),
+            1.0 - tex_y_offset * (y + 1),
         },
         [_]f32{
             // position
@@ -103,8 +120,8 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             bg.g,
             bg.b,
             // texcoord
-            0.0625 + 0.0625 * x,
-            0.0 + 0.0625 * y,
+            tex_x_offset * (x + 1),
+            1.0 - tex_y_offset * y,
         },
         [_]f32{
             // position
@@ -119,8 +136,8 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             bg.g,
             bg.b,
             // texcoord
-            0.0 + 0.0625 * x,
-            0.0 + 0.0625 * y,
+            tex_x_offset * x,
+            1.0 - tex_y_offset * y,
         },
         [_]f32{
             // position
@@ -135,8 +152,8 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             bg.g,
             bg.b,
             // texcoord
-            0.0 + 0.0625 * x,
-            0.0625 + 0.0625 * y,
+            tex_x_offset * x,
+            1.0 - tex_y_offset * (y + 1),
         },
     };
     const vao = makeVao(vertices);

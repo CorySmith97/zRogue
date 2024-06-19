@@ -40,7 +40,6 @@ pub fn init(vs_path: []const u8, fs_path: []const u8) !Self {
     c.glDeleteShader(vs);
     c.glDeleteShader(fs);
 
-    std.debug.print("Shader Program {}\n", .{shaderProgram});
     return .{
         .id = shaderProgram,
     };

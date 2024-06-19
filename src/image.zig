@@ -10,7 +10,7 @@ pub fn init(path: [:0]const u8) !Self {
     var width: c_int = undefined;
     var height: c_int = undefined;
     var num_channels: c_int = undefined;
-    c.stbi_set_flip_vertically_on_load(1);
+    c.stbi_set_flip_vertically_on_load(0);
     const data = c.stbi_load(path, &width, &height, &num_channels, 0) orelse {
         std.log.err("Failed to load image: {s}\n", .{path});
         return error.FailedImage;

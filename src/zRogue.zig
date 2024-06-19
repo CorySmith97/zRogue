@@ -8,6 +8,7 @@
 
 // Imports
 const std = @import("std");
+const log = std.log;
 const c = @import("c.zig");
 const Image = @import("image.zig");
 const Shader = @import("Shader.zig");
@@ -22,12 +23,16 @@ pub const AppDesc = struct {
     height: i32 = 50,
     tile_width: i32 = 12,
     tile_height: i32 = 12,
+    target_fps: i32 = 60,
 
     // user defined functions
     init: ?*const fn () void = null,
     tick: ?*const fn () void = null,
-    events: ?*const fn () void = null,
+    events: ?*const fn (event: c.SDL_Event, quit: *bool) void = null,
 };
+
+const KEYTYPE = c.SDL_Event.key.keysym.sym;
+const KEY_A = c.SDLK_a;
 
 // This funciton is our app's entry point. We use struct intialization
 // in order to help keep this clean.
@@ -46,38 +51,20 @@ pub fn run(app: AppDesc) !void {
     if (app.init) |init| {
         init();
     }
-    std.debug.print("{}\n", .{c.epoxy_gl_version()});
+    log.info("[LOG] LibEpoxy Version: {}\n", .{c.epoxy_gl_version()});
     var a: u32 = 0;
     var b: u32 = 0;
     var delta: f64 = 0;
 
     var quit = false;
-    var toggle = false;
     while (!quit) {
         a = c.SDL_GetTicks();
         delta = @as(f64, @floatFromInt(a - b));
         var event: c.SDL_Event = undefined;
         while (c.SDL_PollEvent(&event) != 0) {
-            const key = event.key.keysym.sym;
-            switch (event.type) {
-                c.SDL_QUIT => {
-                    quit = true;
-                },
-                c.SDL_KEYDOWN => {
-                    if (key == c.SDLK_h) {
-                        toggle = !toggle;
-                    }
-                    if (key == c.SDLK_ESCAPE) {
-                        quit = true;
-                    }
-                },
-                else => {},
+            if (app.events) |events| {
+                events(event, &quit);
             }
-        }
-        if (toggle) {
-            c.glPolygonMode(c.GL_FRONT_AND_BACK, c.GL_LINE);
-        } else {
-            c.glPolygonMode(c.GL_FRONT_AND_BACK, c.GL_FILL);
         }
 
         window.drawBackgroundColor(0.0, 0.0, 0.0);

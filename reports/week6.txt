@@ -1,0 +1,38 @@
+Name: Cory Smith
+Project Title: zRogue
+
+Team Members: None
+
+Overall Status: Behind
+
+Number of hours worked since last update: 12
+Number of hours worked on the project thus far: 33
+Total number of hours anticipated for completion: 93
+
+Accomplishments:I have the "terminal" renderering along with the capability 
+for ascii characters to be colored with unique foregrounds and backgrounds.
+All of this is done GPU side, and there is a nice layer for someone to use it.
+
+
+Challenges: Getting things rendering this way. Getting the dimensions correct
+was a massive hassel. 
+
+Plans / Goals for next week: Get this loop rendering in a browser with Emscripten.
+
+
+Accountability plan: I honestly dont have one, and probably should
+talk with you during offices hours. 
+
+Other comments: I have been completely distracted with my internship and 
+this project has been slowly falling to the side. Not that I havent been working
+on it, but taking the step into GPU rendering was something that I probably 
+should not have done. Getting libraries configured was the difficult part, 
+not even the coding shaders or anything. I just introduced complexity too early.
+But that being said, that was the biggest road block for the project. Now
+I just need to make a simple game, and document it. Along with provide a nice
+abstraction for input handling and the core aspect of the library will be
+finished. The main problem is I want to build something that is cool
+and something that I would be proud to talk about. Maybe I just need some 
+advice for taking things at a more resonable pace, or in a more realistic way.
+
+
