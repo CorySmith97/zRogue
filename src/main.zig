@@ -63,7 +63,7 @@ fn tick() void {
     s.drawSprite(10, 11, s.PASTEL_BLUE, s.BLACK, 'g');
     s.drawSprite(11, 11, s.PASTEL_ORANGE, s.BLACK, 'h');
     s.drawSprite(12, 11, s.PASTEL_ORANGE, s.BLACK, 2);
-    s.drawSprite(35, 11, s.PASTEL_ORANGE, s.BLACK, 2);
+    s.drawSprite(12, 11, s.PASTEL_ORANGE, s.BLACK, 2);
     s.drawSprite(
         state.player.x,
         state.player.y,
