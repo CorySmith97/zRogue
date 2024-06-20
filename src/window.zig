@@ -17,6 +17,7 @@ pub fn init(title: [*c]const u8, width: i32, height: i32) Self {
     };
 }
 
+// Makes a new window with OpenGL 3.3
 pub fn createWindow(self: *Self) void {
     if (c.SDL_Init(c.SDL_INIT_VIDEO) != 0) {
         std.debug.print("ERROR in intialization: {s}\n", .{c.SDL_GetError()});

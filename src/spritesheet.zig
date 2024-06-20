@@ -7,6 +7,18 @@ pub const Color = struct {
     b: f32,
 };
 
+const Buffers = struct {
+    vao: u32,
+    vbo: u32,
+    ebo: u32,
+
+    pub fn deinit(self: *@This()) void {
+        c.glDeleteVertexArrays(1, &self.vao);
+        c.glDeleteBuffers(1, &self.vbo);
+        c.glDeleteBuffers(1, &self.ebo);
+    }
+};
+
 pub const WHITE = Color{ .r = 1.0, .g = 1.0, .b = 1.0 };
 pub const BLACK = Color{ .r = 0.0, .g = 0.0, .b = 0.0 };
 pub const GREEN = Color{ .r = 0.0, .g = 1.0, .b = 0.0 };
@@ -25,7 +37,7 @@ pub const PASTEL_BLUE = Color{ .r = 0.575, .g = 0.77, .b = 0.9 };
 pub const PASTEL_YELLOW = Color{ .r = 0.9, .g = 0.9, .b = 0.575 };
 pub const PASTEL_ORANGE = Color{ .r = 0.9, .g = 0.75, .b = 0.575 };
 
-fn makeVao(points: [4][10]f32) u32 {
+fn makeVao(points: [4][10]f32) Buffers {
     const indices = [_][3]u32{
         [_]u32{ 0, 1, 2 },
         [_]u32{ 0, 2, 3 },
@@ -59,7 +71,11 @@ fn makeVao(points: [4][10]f32) u32 {
     c.glVertexAttribPointer(3, 2, c.GL_FLOAT, c.GL_FALSE, 10 * @sizeOf(f32), tex_offset);
     c.glEnableVertexAttribArray(3);
 
-    return vao;
+    return .{
+        .vao = vao,
+        .ebo = ebo,
+        .vbo = vbo,
+    };
 }
 
 const Self = @This();
@@ -156,7 +172,8 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             1.0 - tex_y_offset * (y + 1),
         },
     };
-    const vao = makeVao(vertices);
-    c.glBindVertexArray(@intCast(vao));
+    var buff = makeVao(vertices);
+    c.glBindVertexArray(@intCast(buff.vao));
     c.glDrawElements(c.GL_TRIANGLES, 6, c.GL_UNSIGNED_INT, null);
+    buff.deinit();
 }

@@ -1,54 +1,70 @@
 const std = @import("std");
-const arena = std.heap.ArenaAllocator;
 const app = @import("zRogue.zig");
 const run = app.run;
-const sh = @import("spritesheet.zig");
+const s = @import("spritesheet.zig");
 const c = @import("c.zig");
 
+const TileTypes = enum {
+    Wall,
+    Floor,
+};
+
 const Player = struct {
-    fg: sh.Color,
-    bg: sh.Color,
+    fg: s.Color,
+    bg: s.Color,
     char: u8,
     x: f32,
     y: f32,
 };
-const State = struct { player: Player };
+
+const State = struct {
+    player: Player,
+    allocator: std.mem.Allocator,
+    map: std.ArrayList(TileTypes),
+};
 
 var state: State = undefined;
 
 fn init() void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer {
+        _ = gpa.deinit();
+    }
     state = .{
         .player = .{
-            .fg = sh.DARK_BLUE,
-            .bg = sh.BLACK,
+            .fg = s.DARK_BLUE,
+            .bg = s.BLACK,
             .char = '@',
             .x = 10,
             .y = 5,
         },
+        .allocator = gpa.allocator(),
+        .map = std.ArrayList(TileTypes).init(gpa.allocator()),
     };
 }
 
 fn tick() void {
-    sh.drawSprite(4, 10, sh.TEAL, sh.BLACK, '1');
-    sh.drawSprite(5, 10, sh.MAGENTA, sh.BLACK, '2');
-    sh.drawSprite(6, 10, sh.MUSTARD, sh.BLACK, '3');
-    sh.drawSprite(7, 10, sh.DARK_BLUE, sh.BLACK, '4');
-    sh.drawSprite(8, 10, sh.PASTEL_RED, sh.BLACK, '5');
-    sh.drawSprite(9, 10, sh.PASTEL_PINK, sh.BLACK, '6');
-    sh.drawSprite(10, 10, sh.PASTEL_BLUE, sh.BLACK, '7');
-    sh.drawSprite(11, 10, sh.PASTEL_ORANGE, sh.BLACK, '8');
+    s.drawSprite(4, 10, s.TEAL, s.BLACK, '1');
+    s.drawSprite(5, 10, s.MAGENTA, s.BLACK, '2');
+    s.drawSprite(6, 10, s.MUSTARD, s.BLACK, '3');
+    s.drawSprite(7, 10, s.DARK_BLUE, s.BLACK, '4');
+    s.drawSprite(8, 10, s.PASTEL_RED, s.BLACK, '5');
+    s.drawSprite(9, 10, s.PASTEL_PINK, s.BLACK, '6');
+    s.drawSprite(10, 10, s.PASTEL_BLUE, s.BLACK, '7');
+    s.drawSprite(11, 10, s.PASTEL_ORANGE, s.BLACK, '8');
     // letters test
 
-    sh.drawSprite(4, 11, sh.TEAL, sh.BLACK, 'a');
-    sh.drawSprite(5, 11, sh.MAGENTA, sh.BLACK, 'b');
-    sh.drawSprite(6, 11, sh.MUSTARD, sh.BLACK, 'c');
-    sh.drawSprite(7, 11, sh.DARK_BLUE, sh.BLACK, 'd');
-    sh.drawSprite(8, 11, sh.PASTEL_RED, sh.BLACK, 'e');
-    sh.drawSprite(9, 11, sh.PASTEL_PINK, sh.BLACK, 'f');
-    sh.drawSprite(10, 11, sh.PASTEL_BLUE, sh.BLACK, 'g');
-    sh.drawSprite(11, 11, sh.PASTEL_ORANGE, sh.BLACK, 'h');
-    sh.drawSprite(12, 11, sh.PASTEL_ORANGE, sh.BLACK, 2);
-    sh.drawSprite(
+    s.drawSprite(4, 11, s.TEAL, s.BLACK, 'a');
+    s.drawSprite(5, 11, s.MAGENTA, s.BLACK, 'b');
+    s.drawSprite(6, 11, s.MUSTARD, s.BLACK, 'c');
+    s.drawSprite(7, 11, s.DARK_BLUE, s.BLACK, 'd');
+    s.drawSprite(8, 11, s.PASTEL_RED, s.BLACK, 'e');
+    s.drawSprite(9, 11, s.PASTEL_PINK, s.BLACK, 'f');
+    s.drawSprite(10, 11, s.PASTEL_BLUE, s.BLACK, 'g');
+    s.drawSprite(11, 11, s.PASTEL_ORANGE, s.BLACK, 'h');
+    s.drawSprite(12, 11, s.PASTEL_ORANGE, s.BLACK, 2);
+    s.drawSprite(35, 11, s.PASTEL_ORANGE, s.BLACK, 2);
+    s.drawSprite(
         state.player.x,
         state.player.y,
         state.player.fg,
@@ -57,30 +73,21 @@ fn tick() void {
     );
 }
 
-pub fn input(event: c.SDL_Event, quit: *bool) void {
-    const key = event.key.keysym.sym;
-    switch (event.type) {
-        c.SDL_QUIT => {
-            quit.* = true;
-        },
-        c.SDL_KEYDOWN => {
-            if (key == c.SDLK_ESCAPE) {
-                quit.* = true;
-            }
-            if (key == c.SDLK_a) {
-                state.player.x -= 1;
-            }
-            if (key == c.SDLK_d) {
-                state.player.x += 1;
-            }
-            if (key == c.SDLK_w) {
-                state.player.y -= 1;
-            }
-            if (key == c.SDLK_s) {
-                state.player.y += 1;
-            }
-        },
-        else => {},
+pub fn input(event: *app.Event) void {
+    if (event.isKeyDown(app.KEY_A)) {
+        state.player.x -= 1;
+    }
+    if (event.isKeyDown(app.KEY_D)) {
+        state.player.x += 1;
+    }
+    if (event.isKeyDown(app.KEY_W)) {
+        state.player.y -= 1;
+    }
+    if (event.isKeyDown(app.KEY_S)) {
+        state.player.y += 1;
+    }
+    if (event.isKeyDown(app.KEY_Escape)) {
+        event.windowShouldClose(true);
     }
 }
 
