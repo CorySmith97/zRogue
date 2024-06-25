@@ -6,14 +6,17 @@
 /// ███████╗██║  ██║╚██████╔╝╚██████╔╝╚██████╔╝███████╗
 /// ╚══════╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝  ╚═════╝ ╚══════╝
 
+// seperation
+
+/// These are the interfaces for the main library.
+pub const Image = @import("image.zig");
+pub const Shader = @import("Shader.zig");
+pub const Window = @import("window.zig");
+pub const Sprite = @import("spritesheet.zig");
 // Imports
 const std = @import("std");
 const log = std.log;
 const c = @import("c.zig");
-const Image = @import("image.zig");
-const Shader = @import("Shader.zig");
-const w = @import("window.zig");
-const sh = @import("spritesheet.zig");
 
 /// Struct for initializing a new app. This
 /// is passed into the run function which then
@@ -38,7 +41,7 @@ pub const AppDesc = struct {
 /// in order to help keep this clean.
 pub fn run(app: AppDesc) !void {
     var img = try Image.init("src/assets/vga8x16.jpg");
-    var window = w.init(app.title, 800, 600);
+    var window = Window.init(app.title, 800, 600);
     window.createWindow();
     defer window.deinit();
 
