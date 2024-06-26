@@ -47,7 +47,7 @@ pub fn run(app: AppDesc) !void {
 
     try window.getGLContext();
 
-    const shd = try Shader.init("src/test.vs", "src/test.fs");
+    const shd = try Shader.init("src/assets/vert.vs", "src/assets/frag.fs");
     const texture = try img.imgToTexture();
     img.free();
 
