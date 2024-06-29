@@ -101,16 +101,18 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
 
     const x = @as(f32, @floatFromInt(ascii_tex_pos_x));
     const y = 15 - @as(f32, @floatFromInt(ascii_tex_pos_y));
-    const pos_x = 0.05 * cell_x;
-    const pos_y = 0.08 * (-cell_y);
+    const pos_x = 0.025 * cell_x;
+    const pos_y = 0.04 * (-cell_y);
     const tex_x_offset = 1.0 / 16.0;
     const tex_y_offset = 1.0 / 16.0;
+    const cell_size_x = 1.0 / 80.0;
+    const cell_size_y = 1.0 / 50.0;
 
     const vertices = [_][10]f32{
         [_]f32{
             // position
-            0.025 * 1.0 + pos_x - 0.975,
-            0.04 * 1.0 + pos_y + 0.96,
+            cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
+            cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
             // fg
             fg.r,
             fg.g,
@@ -125,8 +127,8 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
         },
         [_]f32{
             // position
-            0.025 * 1.0 + pos_x - 0.975,
-            0.04 * -1.0 + pos_y + 0.96,
+            cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
+            cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
             // fg
             fg.r,
             fg.g,
@@ -141,8 +143,8 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
         },
         [_]f32{
             // position
-            0.025 * -1.0 + pos_x - 0.975,
-            0.04 * -1.0 + pos_y + 0.96,
+            cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
+            cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
             // fg
             fg.r,
             fg.g,
@@ -157,8 +159,8 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
         },
         [_]f32{
             // position
-            0.025 * -1.0 + pos_x - 0.975,
-            0.04 * 1.0 + pos_y + 0.96,
+            cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
+            cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
             // fg
             fg.r,
             fg.g,

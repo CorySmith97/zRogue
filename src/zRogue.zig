@@ -20,28 +20,33 @@ const c = @import("c.zig");
 
 /// Struct for initializing a new app. This
 /// is passed into the run function which then
-/// takes over and runs the basic game.
+/// takes over and runs the basic game. This can also be viewed
+/// as our configuation layer between the user and the library
 pub const AppDesc = struct {
     const Self = @This();
     title: [*c]const u8,
-    //allocator: std.heap.ArenaAllocator,
-    width: i32 = 80,
-    height: i32 = 50,
-    tile_width: i32 = 12,
-    tile_height: i32 = 12,
-    target_fps: i32 = 60,
-
     /// user defined functions
-    init: ?*const fn () void = null,
-    tick: ?*const fn () void = null,
-    events: ?*const fn (event: *Event) void = null,
+    /// Init happens before any main loop
+    init: ?*const fn () anyerror!void = null,
+    /// tick happens once per loop. This is meant for logic and rendering
+    tick: ?*const fn () anyerror!void = null,
+    /// events happens onces per loop. Additionally this is mean to handle input
+    events: ?*const fn (event: *Event) anyerror!void = null,
 };
 
-/// This funciton is our app's entry point. We use struct intialization
+pub var rng: std.Random.Xoshiro256 = undefined;
+
+/// This funciton is our app's entry point. We use struct intializatiteston
 /// in order to help keep this clean.
 pub fn run(app: AppDesc) !void {
+    rng = std.rand.DefaultPrng.init(blk: {
+        var seed: u64 = undefined;
+        try std.posix.getrandom(std.mem.asBytes(&seed));
+        break :blk seed;
+    });
+
     var img = try Image.init("src/assets/vga8x16.jpg");
-    var window = Window.init(app.title, 800, 600);
+    var window = Window.init(app.title, 1200, 750);
     window.createWindow();
     defer window.deinit();
 
@@ -52,7 +57,7 @@ pub fn run(app: AppDesc) !void {
     img.free();
 
     if (app.init) |init| {
-        init();
+        try init();
     }
     log.info("[LOG] LibEpoxy Version: {}\n", .{c.epoxy_gl_version()});
     var a: u32 = 0;
@@ -71,7 +76,7 @@ pub fn run(app: AppDesc) !void {
         };
         while (c.SDL_PollEvent(ev.ev) != 0) {
             if (app.events) |events| {
-                events(&ev);
+                try events(&ev);
             }
             if (ev.ev.type == c.SDL_QUIT) {
                 quit = true;
@@ -84,7 +89,7 @@ pub fn run(app: AppDesc) !void {
         c.glBindTexture(c.GL_TEXTURE_2D, texture);
 
         if (app.tick) |tick| {
-            tick();
+            try tick();
         }
 
         //c.glDrawArrays(c.GL_TRIANGLES, 0, 3);
@@ -93,6 +98,7 @@ pub fn run(app: AppDesc) !void {
     }
 }
 
+/// Events are the way to get information from user.
 pub const Event = struct {
     const Self = @This();
     ev: *c.SDL_Event,
@@ -138,3 +144,21 @@ pub const KEY_X = c.SDLK_x;
 pub const KEY_Y = c.SDLK_y;
 pub const KEY_Z = c.SDLK_z;
 pub const KEY_Escape = c.SDLK_ESCAPE;
+pub const KEY_Right = c.SDLK_RIGHT;
+pub const KEY_Left = c.SDLK_LEFT;
+pub const KEY_Up = c.SDLK_UP;
+pub const KEY_Down = c.SDLK_DOWN;
+pub const KEY_Tab = c.SDLK_TAB;
+pub const KEY_Enter = c.SDLK_RETURN;
+pub const KEY_Backspace = c.SDLK_BACKSPACE;
+pub const KEY_Space = c.SDLK_SPACE;
+pub const KEY_1 = c.SDLK_1;
+pub const KEY_2 = c.SDLK_2;
+pub const KEY_3 = c.SDLK_3;
+pub const KEY_4 = c.SDLK_4;
+pub const KEY_5 = c.SDLK_5;
+pub const KEY_6 = c.SDLK_6;
+pub const KEY_7 = c.SDLK_7;
+pub const KEY_8 = c.SDLK_8;
+pub const KEY_9 = c.SDLK_9;
+pub const KEY_0 = c.SDLK_0;
