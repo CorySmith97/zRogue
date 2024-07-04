@@ -32,6 +32,7 @@ pub const AppDesc = struct {
     tick: ?*const fn () anyerror!void = null,
     /// events happens onces per loop. Additionally this is mean to handle input
     events: ?*const fn (event: *Event) anyerror!void = null,
+    cleanup: ?*const fn () anyerror!void = null,
 };
 
 pub var rng: std.Random.Xoshiro256 = undefined;
@@ -95,6 +96,9 @@ pub fn run(app: AppDesc) !void {
         //c.glDrawArrays(c.GL_TRIANGLES, 0, 3);
         window.swapWindow();
         b = a;
+    }
+    if (app.cleanup) |cleanup| {
+        try cleanup();
     }
 }
 

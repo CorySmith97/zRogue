@@ -4,6 +4,7 @@ const types = @import("types.zig");
 const TileTypes = types.TileTypes;
 const Rect = types.Rect;
 const Player = @import("main.zig").Player;
+const ArrayList = std.ArrayList;
 
 pub fn i32tof32(x: i32) f32 {
     return @as(f32, @floatFromInt(x));
@@ -11,16 +12,23 @@ pub fn i32tof32(x: i32) f32 {
 pub fn usizetof32(x: usize) f32 {
     return @as(f32, @floatFromInt(x));
 }
+
+const Self = @This();
+tiles: ArrayList(TileTypes),
+rooms: ArrayList(Rect),
+width: f32,
+height: f32,
+
 /// map.zig
 pub fn index(x: f32, y: f32) usize {
     const idx = @as(usize, @intFromFloat((y * 80) + x));
     return idx;
 }
 
-pub fn applyRoomToMap(map: *[80 * 50]TileTypes, room: Rect) void {
+pub fn applyRoomToMap(self: *Self, room: Rect) void {
     for (@as(usize, @intFromFloat(room.y + 1))..@as(usize, @intFromFloat(room.y2))) |y| {
         for (@as(usize, @intFromFloat(room.x + 1))..@as(usize, @intFromFloat(room.x2))) |x| {
-            map.*[index(usizetof32(x), usizetof32(y))] = TileTypes.Floor;
+            self.tiles.items[index(usizetof32(x), usizetof32(y))] = TileTypes.Floor;
         }
     }
 }
@@ -54,27 +62,34 @@ pub fn newMap() ![80 * 50]TileTypes {
     return map;
 }
 
-pub fn horizontal_tunnel(map: *[80 * 50]TileTypes, x1: f32, x2: f32, y: f32) void {
+pub fn horizontal_tunnel(self: *Self, x1: f32, x2: f32, y: f32) void {
     for (@as(usize, @intFromFloat(@min(x1, x2)))..(@as(usize, @intFromFloat(@max(x1, x2))) + 1)) |x| {
         const idx = index(usizetof32(x), y);
         if (0 < idx and idx < (80 * 50)) {
-            map.*[idx] = TileTypes.Floor;
+            self.tiles.items[idx] = TileTypes.Floor;
         }
     }
 }
-pub fn vertical_tunnel(map: *[80 * 50]TileTypes, y1: f32, y2: f32, x: f32) void {
+pub fn vertical_tunnel(self: *Self, y1: f32, y2: f32, x: f32) void {
     for (@as(usize, @intFromFloat(@min(y1, y2)))..(@as(usize, @intFromFloat(@max(y1, y2))) + 1)) |y| {
         const idx = index(x, usizetof32(y));
         if (0 < idx and idx < (80 * 50)) {
-            map.*[idx] = TileTypes.Floor;
+            self.tiles.items[idx] = TileTypes.Floor;
         }
     }
 }
 
-pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) ![80 * 50]TileTypes {
-    var map = [_]TileTypes{TileTypes.Wall} ** (80 * 50);
-    var rooms = std.ArrayList(Rect).init(alloc);
-    defer rooms.deinit();
+pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) !Self {
+    var map = Self{
+        .tiles = try std.ArrayList(TileTypes).initCapacity(alloc, 80 * 50),
+        .rooms = std.ArrayList(Rect).init(alloc),
+        .width = 80,
+        .height = 50,
+    };
+
+    for (0..(80 * 50)) |i| {
+        try map.tiles.insert(i, TileTypes.Wall);
+    }
 
     const MAX_ROOMS = 30;
     const MIN_SIZE = 6;
@@ -93,29 +108,28 @@ pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) ![80 * 50]Tile
             i32tof32(h),
         );
         var new_room_ok = true;
-        for (rooms.items) |room| {
+        for (map.rooms.items) |room| {
             if (room.intersects(new_room)) {
                 new_room_ok = false;
             }
         }
         if (new_room_ok) {
-            applyRoomToMap(&map, new_room);
-            if (rooms.items.len != 0) {
+            map.applyRoomToMap(new_room);
+            if (map.rooms.items.len != 0) {
                 const new = new_room.center();
-                const prev = rooms.items[rooms.items.len - 1].center();
+                const prev = map.rooms.items[map.rooms.items.len - 1].center();
 
                 if (rand.intRangeAtMost(i32, 0, 2) == 1) {
-                    horizontal_tunnel(&map, prev.x, new.x, prev.y);
-                    vertical_tunnel(&map, prev.y, new.y, new.x);
+                    map.horizontal_tunnel(prev.x, new.x, prev.y);
+                    map.vertical_tunnel(prev.y, new.y, new.x);
                 } else {
-                    horizontal_tunnel(&map, prev.x, new.x, new.y);
-                    vertical_tunnel(&map, prev.y, new.y, prev.x);
+                    map.horizontal_tunnel(prev.x, new.x, new.y);
+                    map.vertical_tunnel(prev.y, new.y, prev.x);
                 }
             }
-            try rooms.append(new_room);
+            try map.rooms.append(new_room);
         }
     }
-    player.pos = rooms.items[0].center();
-    std.debug.print("Player Pos: {}\n", .{player.pos});
+    player.pos = map.rooms.items[0].center();
     return map;
 }
