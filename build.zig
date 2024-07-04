@@ -47,7 +47,7 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "zRogue",
-        .root_source_file = b.path("examples/main.zig"),
+        .root_source_file = b.path("testBuild/main.zig"),
         .target = target,
         .optimize = optimize,
     });
