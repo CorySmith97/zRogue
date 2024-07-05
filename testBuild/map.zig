@@ -5,6 +5,7 @@ const TileTypes = types.TileTypes;
 const Rect = types.Rect;
 const Player = @import("main.zig").Player;
 const ArrayList = std.ArrayList;
+const Vec2 = types.Vec2;
 
 pub fn i32tof32(x: i32) f32 {
     return @as(f32, @floatFromInt(x));
@@ -132,4 +133,17 @@ pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) !Self {
     }
     player.pos = map.rooms.items[0].center();
     return map;
+}
+
+pub fn vec2ToIndex(self: *Self, vec: Vec2) u32 {
+    const bounds = self.dimensions();
+    return ((vec.y * bounds.x) + vec.x);
+}
+
+pub fn dimensions(self: *Self) Vec2 {
+    return Vec2{ .x = self.width, .y = self.height };
+}
+
+pub fn isTileOpaque(self: *Self, idx: u32) bool {
+    return self.tiles.items[idx] == TileTypes.Wall;
 }

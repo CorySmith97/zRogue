@@ -52,6 +52,10 @@ pub const State = struct {
             self.player.pos.y = @min(49, @max(0, self.player.pos.y + delta_y));
         }
     }
+    // https://www.albertford.com/shadowcasting/
+    pub fn fov(self: *Self) void {
+
+    }
 };
 
 pub var state: State = undefined;
