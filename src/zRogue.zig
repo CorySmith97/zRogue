@@ -13,6 +13,8 @@ pub const Image = @import("image.zig");
 pub const Shader = @import("Shader.zig");
 pub const Window = @import("window.zig");
 pub const Sprite = @import("spritesheet.zig");
+pub const Algorithms = @import("algorithms.zig");
+pub const Geometry = @import("geometry.zig");
 // Imports
 const std = @import("std");
 const log = std.log;

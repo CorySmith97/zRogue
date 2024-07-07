@@ -5,7 +5,7 @@ const TileTypes = types.TileTypes;
 const Rect = types.Rect;
 const Player = @import("main.zig").Player;
 const ArrayList = std.ArrayList;
-const Vec2 = types.Vec2;
+const Vec2 = app.Geometry.Vec2;
 
 pub fn i32tof32(x: i32) f32 {
     return @as(f32, @floatFromInt(x));
@@ -16,10 +16,25 @@ pub fn usizetof32(x: usize) f32 {
 
 const Self = @This();
 tiles: ArrayList(TileTypes),
+vis_tiles: ArrayList(bool),
 rooms: ArrayList(Rect),
 width: f32,
 height: f32,
 
+//pub fn scanner(self: *Self) app.Algorithms.Scanner {
+//    return app.Algorithms.Scanner.init(self, TileTypes);
+//}
+
+pub fn computeFov(self: *Self, playerPos: Vec2) void {
+    self.vis_tiles.items[self.vec2ToIndex(playerPos)] = true;
+
+    inline for (std.meta.fields(app.Algorithms.Cardinal)) |f| {
+        std.debug.print("{s}\n", .{f.name});
+    }
+}
+pub fn markTileVisible(self: *Self, pos: Vec2) void {
+    self.vis_tiles.items[self.vec2ToIndex(pos)] = true;
+}
 /// map.zig
 pub fn index(x: f32, y: f32) usize {
     const idx = @as(usize, @intFromFloat((y * 80) + x));
@@ -83,6 +98,7 @@ pub fn vertical_tunnel(self: *Self, y1: f32, y2: f32, x: f32) void {
 pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) !Self {
     var map = Self{
         .tiles = try std.ArrayList(TileTypes).initCapacity(alloc, 80 * 50),
+        .vis_tiles = try std.ArrayList(bool).initCapacity(alloc, 80 * 50),
         .rooms = std.ArrayList(Rect).init(alloc),
         .width = 80,
         .height = 50,
@@ -90,6 +106,7 @@ pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) !Self {
 
     for (0..(80 * 50)) |i| {
         try map.tiles.insert(i, TileTypes.Wall);
+        try map.vis_tiles.insert(i, false);
     }
 
     const MAX_ROOMS = 30;
@@ -137,7 +154,7 @@ pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) !Self {
 
 pub fn vec2ToIndex(self: *Self, vec: Vec2) u32 {
     const bounds = self.dimensions();
-    return ((vec.y * bounds.x) + vec.x);
+    return @as(u32, @intFromFloat(((vec.y * bounds.x) + vec.x)));
 }
 
 pub fn dimensions(self: *Self) Vec2 {

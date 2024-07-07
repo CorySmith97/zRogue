@@ -4,7 +4,7 @@ const run = app.run;
 const s = app.Sprite;
 const Map = @import("map.zig");
 const types = @import("types.zig");
-const Vec2 = types.Vec2;
+const Vec2 = app.Geometry.Vec2;
 const TileTypes = types.TileTypes;
 const ArrayList = std.ArrayList;
 
@@ -54,7 +54,7 @@ pub const State = struct {
     }
     // https://www.albertford.com/shadowcasting/
     pub fn fov(self: *Self) void {
-
+        _ = self;
     }
 };
 
@@ -83,6 +83,7 @@ fn init() !void {
         .allocator = allocator,
         .map = m,
     };
+    m.computeFov(player.pos);
 }
 
 fn tick() !void {
@@ -117,6 +118,7 @@ pub fn input(event: *app.Event) !void {
 pub fn cleanup() !void {
     m.tiles.deinit();
     m.rooms.deinit();
+    m.vis_tiles.deinit();
     _ = gpa.deinit();
 }
 

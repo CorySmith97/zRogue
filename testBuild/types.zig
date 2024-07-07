@@ -1,12 +1,9 @@
 const std = @import("std");
+const Vec2 = @import("zRogue").Geometry.Vec2;
 
 pub const TileTypes = enum {
     Wall,
     Floor,
-};
-pub const Vec2 = struct {
-    x: f32,
-    y: f32,
 };
 
 pub const Rect = struct {

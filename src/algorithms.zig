@@ -1,123 +1,101 @@
-// https://www.albertford.com/shadowcasting/
-
 const std = @import("std");
+const Vec2 = @import("geometry.zig").Vec2;
 
-const Vec2 = struct {
-    x: f32,
-    y: f32,
-};
+pub const Cardinal = enum { North, South, East, West };
+pub const Quad = struct {
+    origin: Vec2,
+    cardinal: Cardinal,
 
-const Cardinals = enum {
-    north,
-    south,
-    east,
-    west,
-};
-
-const Quadrant = struct {
-    const Self = @This();
-    cardinal: Cardinals,
-    x: i32,
-    y: i32,
-
-    pub fn transform(self: *Self, tile: Vec2) Vec2 {
-        const row = tile.x;
-        const col = tile.y;
-
-        if (self.cardinal == Cardinals.north) {
-            return Vec2{
-                .x = self.x + col,
-                .y = self.y - row,
-            };
-        }
-        if (self.cardinal == Cardinals.south) {
-            return Vec2{
-                .x = self.x + col,
-                .y = self.y + row,
-            };
-        }
-        if (self.cardinal == Cardinals.east) {
-            return Vec2{
-                .x = self.x + row,
-                .y = self.y + col,
-            };
-        }
-        if (self.cardinal == Cardinals.west) {
-            return Vec2{
-                .x = self.x - row,
-                .y = self.y + col,
-            };
+    pub fn new(point: Vec2, card: Cardinal) Quad {
+        return Quad{
+            .point = point,
+            .cardinal = card,
+        };
+    }
+    pub fn transform(self: *Quad, tile: Tile) Vec2 {
+        switch (self.cardinal) {
+            Cardinal.North => return Vec2{ self.origin.x + tile.depth, self.origin.y - tile.depth },
+            Cardinal.East => return Vec2{ self.origin.x + tile.depth, self.origin.y + tile.depth },
+            Cardinal.South => return Vec2{ self.origin.x + tile.depth, self.origin.y + tile.column },
+            Cardinal.West => return Vec2{ self.origin.x - tile.depth, self.origin.y + tile.column },
         }
     }
 };
 
-const Tile = struct {
+pub const Tile = struct {
     depth: i32,
     column: i32,
 };
 
-const Scanline = struct {
-    const Self = @This();
+pub const Scanline = struct {
     depth: i32,
-    start_slope: f64,
-    end_slope: f64,
+    start_slope: f32,
+    end_slope: f32,
 
-    pub fn new(depth: i32, start_slope: f64, end_slope: f64) Self {
-        return Self{
+    pub fn new(depth: i32, start_slope: f32, end_slope: f32) Scanline {
+        return Scanline{
             .depth = depth,
             .start_slope = start_slope,
             .end_slope = end_slope,
         };
     }
-    pub fn tiles(self: *Self) std.ArrayList(Tile) {
+    pub fn tiles(self: *Scanline) Tile {
         _ = self;
-    }
-    pub fn next(self: *Self) void {
-        self.depth += 1;
     }
 };
 
-fn slope(tile: Tile) f64 {
-    return @as(f64, @floatFromInt(2 * tile.column - 1)) / @as(f64, @floatFromInt(2 * tile.depth));
+pub const FOV = struct {
+    tes: i32,
+};
+
+pub fn roundTiesUp(r: f32) i32 {
+    return @as(i32, @intFromFloat(std.math.floor(r + 0.5)));
+}
+pub fn roundTiesDown(r: f32) i32 {
+    return @as(i32, @intFromFloat(std.math.floor(r - 0.5)));
+}
+pub fn slope(tile: Tile) f32 {
+    return @as(f32, @floatFromInt(2 * tile.column - 1 / 2 * tile.depth));
+}
+pub fn isSymmetric(scanline: *Scanline, tile: Tile) bool {
+    const column = @as(f32, @floatFromInt(tile.column));
+    const depth = @as(f32, @floatFromInt(tile.depth));
+    return (column >= depth * scanline.start_slope) and (column <= depth * scanline.end_slope);
 }
 
-fn round_ties_up(r: f64) f64 {
-    return std.math.floor(r + 0.5);
-}
-fn round_ties_down(r: f64) f64 {
-    return std.math.ceil(r - 0.5);
-}
+pub const Scanner = struct {
+    //radius: i32,
+    //quad: Quad,
+    map: *anyopaque,
+    isOpaqueFn: *const fn (ptr: *anyopaque, idx: u32) bool,
 
-fn isSymmetric(scanline: *Scanline, tile: Tile) bool {
-    const col: i32 = @intFromFloat(tile.column);
-    const dep: i32 = @intFromFloat(scanline.depth);
-    return (col >= dep * @as(i32, @intFromFloat(scanline.start_slope)) and (col <= dep * @as(i32, @intFromFloat(scanline.end_slope))));
-}
-
-
-fn scanIterative(tile: Tile) void {
-
-}
-
-const FieldOfView = struct {
-    ptr: *anyopaque,
-    isOpaqueFn: *const fn (ptr: *anyopaque) anyerror!void,
-
-    pub init(ptr: anytype) FieldOfView {
+    pub fn init(ptr: anytype) Scanner {
         const T = @TypeOf(ptr);
-        const ptr_into = @typeInfo(T);
+        const ptr_info = @typeInfo(T);
 
         const gen = struct {
-            pub fn isOpaque(pointer: *anyopaque) anyerror!void {
+            pub fn isOpaque(pointer: *anyopaque, idx: u32) bool {
                 const self: T = @ptrCast(@alignCast(pointer));
-                return ptr_info.Pointer.child.isOpaque(self);
+                return ptr_info.Pointer.child.isTileOpaque(self, idx);
             }
         };
 
         return .{
-            .ptr = ptr,
+            .map = ptr,
             .isOpaqueFn = gen.isOpaque,
         };
     }
-}
+    fn isOpaque(self: Scanner, idx: u32) bool {
+        return self.isOpaqueFn(self.map, idx);
+    }
+};
 
+pub fn fieldOfView(map: anytype) FOV {
+    const T = @TypeOf(map);
+    const m_info = @typeInfo(T);
+
+    std.debug.print("Test Type:{any}, point: {}\n", .{ T, m_info });
+    return FOV{
+        .tes = 3,
+    };
+}
