@@ -93,3 +93,31 @@ fn isSymmetric(scanline: *Scanline, tile: Tile) bool {
     const dep: i32 = @intFromFloat(scanline.depth);
     return (col >= dep * @as(i32, @intFromFloat(scanline.start_slope)) and (col <= dep * @as(i32, @intFromFloat(scanline.end_slope))));
 }
+
+
+fn scanIterative(tile: Tile) void {
+
+}
+
+const FieldOfView = struct {
+    ptr: *anyopaque,
+    isOpaqueFn: *const fn (ptr: *anyopaque) anyerror!void,
+
+    pub init(ptr: anytype) FieldOfView {
+        const T = @TypeOf(ptr);
+        const ptr_into = @typeInfo(T);
+
+        const gen = struct {
+            pub fn isOpaque(pointer: *anyopaque) anyerror!void {
+                const self: T = @ptrCast(@alignCast(pointer));
+                return ptr_info.Pointer.child.isOpaque(self);
+            }
+        };
+
+        return .{
+            .ptr = ptr,
+            .isOpaqueFn = gen.isOpaque,
+        };
+    }
+}
+
