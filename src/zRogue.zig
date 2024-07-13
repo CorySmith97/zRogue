@@ -40,7 +40,15 @@ pub const AppDesc = struct {
 pub var rng: std.Random.Xoshiro256 = undefined;
 
 /// This funciton is our app's entry point. We use struct intializatiteston
-/// in order to help keep this clean.
+/// in order to help keep this clean. The App desc is a struct with a handful
+/// of parameters a user can define. The order of user functions called in
+/// run are as follows:
+/// init()
+/// while (!windowShouldClose) {
+///     events()
+///     tick()
+/// }
+/// cleanup()
 pub fn run(app: AppDesc) !void {
     rng = std.rand.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
@@ -105,6 +113,8 @@ pub fn run(app: AppDesc) !void {
 }
 
 /// Events are the way to get information from user.
+/// There are only a finite number of functions now to
+/// interact. More will be added with time.
 pub const Event = struct {
     const Self = @This();
     ev: *c.SDL_Event,

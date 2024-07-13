@@ -24,14 +24,40 @@ fn buildzlib(b: *std.Build, options: libOptions) *std.Build.Step.Compile {
     return zRogue;
 }
 
-pub const ExampleOptions = struct {};
+pub const ExampleOptions = struct {
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    mod_zRogue: *std.Build.Module,
+};
+
+fn buildExample(b: *std.Build, comptime name: []const u8, options: ExampleOptions) !void {
+    const example_src = "examples/" ++ name ++ ".zig";
+    var run: ?*std.Build.Step.Run = null;
+
+    const example = b.addExecutable(.{
+        .name = name,
+        .root_source_file = b.path(example_src),
+        .target = options.target,
+        .optimize = options.optimize,
+    });
+    example.root_module.addImport("zRogue", options.mod_zRogue);
+    b.installArtifact(example);
+    run = b.addRunArtifact(example);
+    b.step("run-" ++ name, "Run" ++ name).dependOn(&run.?.step);
+}
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     const optimize = b.standardOptimizeOption(.{});
 
-    const examples = .{"hello-window"};
+    const examples = .{
+        "basic-window",
+        "draw-sprite",
+        "draw-map",
+        "user-input",
+        "movable-sprite",
+    };
 
     const lib = buildzlib(b, .{ .target = target, .optimization = optimize });
     const zrogue_module = b.addModule(
@@ -43,7 +69,6 @@ pub fn build(b: *std.Build) void {
         .files = &[_][]const u8{"lib/stb_impl.c"},
     });
     zrogue_module.addIncludePath(.{ .path = "lib/" });
-    _ = examples;
 
     const exe = b.addExecutable(.{
         .name = "zRogue",
@@ -64,4 +89,9 @@ pub fn build(b: *std.Build) void {
     }
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
+
+    //Run examples
+    inline for (examples) |ex| {
+        try buildExample(b, ex, .{ .mod_zRogue = zrogue_module, .target = target, .optimize = optimize });
+    }
 }

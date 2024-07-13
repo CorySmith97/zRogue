@@ -23,7 +23,7 @@ There are several modules within the library.
 
 === How to use? ===
 
-As of right now the build is only avaible for mac. In order to build you need to have
-the master branch of zig downloaded(zig 0.13.0). Along with the latest version of zig,
-you need to have SDL2 downloaded at a system level.
+As of right now the build is only avaible for mac. In order to build you need 
+to have zig 0.12.1. Along with the latest version of zig, you need to have SDL2 
+downloaded at a system level.
 
