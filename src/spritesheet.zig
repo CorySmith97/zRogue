@@ -1,7 +1,7 @@
 const std = @import("std");
 const c = @import("c.zig");
 
-// simple RGB struct. Colors are between 0.0 and 1.0.
+/// simple RGB struct. Colors are between 0.0 and 1.0.
 pub const Color = struct {
     r: f32,
     g: f32,
@@ -96,7 +96,7 @@ pub fn init(t: i32, tW: i32, tH: i32, sW: i32, sH: i32) Self {
     };
 }
 
-// Draws a simple sprite at a given location. The cells are on a 80x50 grid.
+/// Draws a simple sprite at a given location. The cells are on a 80x50 grid.
 pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) void {
     const ascii_tex_pos_x = ascii_ch % 16;
     const ascii_tex_pos_y = ascii_ch / 16;
@@ -182,8 +182,8 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
     buff.deinit();
 }
 
-// Prints a string to the screen. It starts at the given cell_position, and will
-// wrap around to the next row.
+/// Prints a string to the screen. It starts at the given cell_position, and will
+/// wrap around to the next row.
 pub fn print(cell_x: f32, cell_y: f32, fg: Color, bg: Color, string: []const u8) void {
     var x_position = cell_x;
     for (string) |char| {

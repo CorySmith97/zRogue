@@ -4,7 +4,7 @@ const c = @import("c.zig");
 const Self = @This();
 id: u32,
 
-// Loads the shaders at the given paths
+/// Loads the shaders at the given paths
 pub fn init(vs_path: []const u8, fs_path: []const u8) !Self {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
