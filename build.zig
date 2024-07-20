@@ -50,6 +50,9 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     const optimize = b.standardOptimizeOption(.{});
+    std.log.info("[INFO] Target OS: {}\n", .{target.result.os.tag});
+    std.log.info("[INFO] Target CPU: {}\n", .{target.result.cpu.arch});
+    std.log.info("[INFO] Optimization Level: {}\n", .{optimize});
 
     const examples = .{
         "basic-window",

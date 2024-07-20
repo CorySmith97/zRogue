@@ -119,12 +119,16 @@ pub const Event = struct {
     key: *i32,
     quit: *bool,
 
+    // Checks if a provided key is pressed down. Returns true or false
     pub fn isKeyDown(self: *Self, key: c_int) bool {
         if (self.ev.type == c.SDL_KEYDOWN) {
             return (self.key.* == key);
         }
         return false;
     }
+    // User definition for closing the window outside of pressing the X
+    // at the top of the window ie. Key to close the window or game
+    // condition.
     pub fn windowShouldClose(self: *Self, shouldClose: bool) void {
         self.quit.* = shouldClose;
     }

@@ -4,6 +4,7 @@ const c = @import("c.zig");
 const Self = @This();
 id: u32,
 
+// Loads the shaders at the given paths
 pub fn init(vs_path: []const u8, fs_path: []const u8) !Self {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -65,17 +66,17 @@ fn checkProgramLinking(program: u32) !void {
         return error.ProgramLinkingFailed;
     }
 }
-pub fn setBool(self: *Self, name: []const u8, value: bool) void {
+fn setBool(self: *Self, name: []const u8, value: bool) void {
     const location = c.glGetUniformLocation(self.id, name);
     c.glUniform1i(location, if (value) 1 else 0);
 }
 
-pub fn setInt(self: *Self, name: []const u8, value: i32) void {
+fn setInt(self: *Self, name: []const u8, value: i32) void {
     const location = c.glGetUniformLocation(self.id, name);
     c.glUniform1i(location, value);
 }
 
-pub fn setFloat(self: *Self, name: []const u8, value: f32) void {
+fn setFloat(self: *Self, name: []const u8, value: f32) void {
     const location = c.glGetUniformLocation(self.id, name);
     c.glUniform1f(location, value);
 }

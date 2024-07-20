@@ -6,6 +6,7 @@ width: usize,
 height: usize,
 data: []const u8,
 
+// Loads the Image at a path. Creates a new image object
 pub fn init(path: [:0]const u8) !Self {
     var width: c_int = undefined;
     var height: c_int = undefined;
@@ -22,6 +23,7 @@ pub fn init(path: [:0]const u8) !Self {
         .data = data[0..@intCast(width * height)],
     };
 }
+// Moves the image to an opengl texture and passes it to the GPU
 pub fn imgToTexture(image: *Self) !c.GLuint {
     var texture: u32 = undefined;
     c.glGenTextures(1, &texture);
@@ -48,6 +50,7 @@ pub fn imgToTexture(image: *Self) !c.GLuint {
     return texture;
 }
 
+// Frees the memory of the image loaded in init
 pub fn free(self: *Self) void {
     c.stbi_image_free(@ptrCast(@constCast(self.data)));
 }
