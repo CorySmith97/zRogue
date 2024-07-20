@@ -17,13 +17,19 @@ by the sokol headers as well as bracket lib.
 
 There are several modules within the library.
 
-- app
+- Image
+- Shader
+- Window
+- Sprite
+- Geometry
 - algorithms
 
 
 === How to use? ===
 
-As of right now the build is only avaible for mac. In order to build you need 
-to have zig 0.12.1. Along with the latest version of zig, you need to have SDL2 
-downloaded at a system level.
+As of right now the build is only avaible for mac and linux(only tested on 
+pop!_os but should run on more distros). 
+In order to build you need to have zig 0.12.1. Along with the latest version 
+of zig, you need to have SDL2 downloaded as a system library. Additionally 
+you will need to have lib epoxy downloaded and in the system libraries. 
 

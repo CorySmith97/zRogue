@@ -102,8 +102,6 @@ pub fn run(app: AppDesc) !void {
         if (app.tick) |tick| {
             try tick();
         }
-
-        //c.glDrawArrays(c.GL_TRIANGLES, 0, 3);
         window.swapWindow();
         b = a;
     }

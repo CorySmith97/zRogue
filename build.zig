@@ -55,9 +55,9 @@ pub fn build(b: *std.Build) void {
         "basic-window",
         "draw-sprite",
         "draw-map",
-        "user-input",
-        "movable-sprite",
     };
+    //    "user-input",
+    //    "movable-sprite",
 
     const lib = buildzlib(b, .{ .target = target, .optimization = optimize });
     const zrogue_module = b.addModule(

@@ -1,4 +1,5 @@
 const app = @import("zRogue");
+const a = app.Algorithms;
 const std = @import("std");
 const types = @import("types.zig");
 const TileTypes = types.TileTypes;
@@ -6,6 +7,7 @@ const Rect = types.Rect;
 const Player = @import("main.zig").Player;
 const ArrayList = std.ArrayList;
 const Vec2 = app.Geometry.Vec2;
+const Quad = app.Algorithms.Quad;
 
 pub fn i32tof32(x: i32) f32 {
     return @as(f32, @floatFromInt(x));
@@ -25,17 +27,82 @@ height: f32,
 //    return app.Algorithms.Scanner.init(self, TileTypes);
 //}
 
-pub fn computeFov(self: *Self, playerPos: Vec2) void {
-    self.vis_tiles.items[self.vec2ToIndex(playerPos)] = true;
+pub fn computeFov(self: *Self, playerPos: Vec2, viewRange: i32) !void {
+    const player_idx = self.vec2ToIndex(playerPos);
+    if (player_idx) |idx| {
+        self.vis_tiles.items[idx] = true;
+    }
 
-    inline for (std.meta.fields(app.Algorithms.Cardinal)) |f| {
-        std.debug.print("{s}\n", .{f.name});
+    for (app.Algorithms.CardinalList) |f| {
+        var quad = a.Quad.new(playerPos, f);
+        var sl = try a.Scanline.new(1, -1, 1);
+        if (sl.depth * sl.depth > viewRange) {
+            continue;
+        }
+        try self.scan(&sl, &quad);
     }
 }
-pub fn markTileVisible(self: *Self, pos: Vec2) void {
-    self.vis_tiles.items[self.vec2ToIndex(pos)] = true;
+
+pub fn scan(self: *Self, firstLine: *a.Scanline, quad: *a.Quad) !void {
+    var stack = std.ArrayList(a.Scanline).init(std.heap.page_allocator);
+    defer stack.deinit();
+
+    try stack.append(firstLine.*);
+
+    while (stack.items.len != 0) {
+        var scanline = stack.pop();
+        var prev_tile: ?a.Tile = null;
+
+        const tiles = try scanline.tiles();
+        for (tiles) |tile| {
+            const transformedQuad = quad.transform(tile);
+            const idx = self.vec2ToIndex(transformedQuad);
+
+            if (idx) |valid_idx| {
+                if (self.isTileOpaque(valid_idx) or a.isSymmetric(&scanline, tile)) {
+                    try self.markTileVisible(transformedQuad);
+                }
+
+                if (prev_tile) |prev| {
+                    const previous_transformed = quad.transform(prev);
+                    const prev_idx = self.vec2ToIndex(previous_transformed);
+
+                    if (prev_idx) |valid_prev_idx| {
+                        if (self.isTileOpaque(valid_prev_idx) and !self.isTileOpaque(valid_idx)) {
+                            scanline.start_slope = a.slope(tile);
+                        }
+
+                        if (!self.isTileOpaque(valid_prev_idx) and self.isTileOpaque(valid_idx)) {
+                            var next_line = scanline.next();
+                            next_line.end_slope = a.slope(tile);
+                            try stack.append(next_line);
+                        }
+                    }
+                }
+
+                prev_tile = tile;
+            }
+        }
+
+        if (prev_tile) |prev| {
+            const previous_transformed = quad.transform(prev);
+            const prev_idx = self.vec2ToIndex(previous_transformed);
+            if (prev_idx) |valid_prev_idx| {
+                if (!self.isTileOpaque(valid_prev_idx)) {
+                    try stack.append(scanline.next());
+                }
+            }
+        }
+    }
 }
-/// map.zig
+pub fn markTileVisible(self: *Self, pos: Vec2) !void {
+    const idx = self.vec2ToIndex(pos);
+    if (idx) |indx| {
+        self.vis_tiles.items[indx] = true;
+    }
+}
+// This is the index function to translate x/y coordinates
+// to our flat array
 pub fn index(x: f32, y: f32) usize {
     const idx = @as(usize, @intFromFloat((y * 80) + x));
     return idx;
@@ -152,9 +219,16 @@ pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) !Self {
     return map;
 }
 
-pub fn vec2ToIndex(self: *Self, vec: Vec2) u32 {
+pub fn vec2ToIndex(self: *Self, vec: Vec2) ?u32 {
     const bounds = self.dimensions();
-    return @as(u32, @intFromFloat(((vec.y * bounds.x) + vec.x)));
+    const scratch = (vec.y * bounds.x);
+    std.debug.print("bounds: {}, {}, scratch: {} vec2: {any}\n", .{ bounds.x, bounds.y, scratch, vec });
+    const idx = @as(u32, @intFromFloat((scratch + vec.x)));
+    if (idx > 0 and idx < self.tiles.items.len) {
+        return idx;
+    } else {
+        return null;
+    }
 }
 
 pub fn dimensions(self: *Self) Vec2 {
@@ -162,5 +236,9 @@ pub fn dimensions(self: *Self) Vec2 {
 }
 
 pub fn isTileOpaque(self: *Self, idx: u32) bool {
-    return self.tiles.items[idx] == TileTypes.Wall;
+    if (idx >= self.tiles.items.len) {
+        return false;
+    } else {
+        return self.tiles.items[idx] == TileTypes.Wall;
+    }
 }

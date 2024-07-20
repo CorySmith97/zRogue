@@ -32,8 +32,9 @@ pub const State = struct {
         var x: f32 = 0;
         var y: f32 = 0;
 
-        for (self.map.tiles.items) |cell| {
+        for (self.map.tiles.items, self.map.vis_tiles.items) |cell, vis| {
             //std.debug.print("{any}\n", .{cell});
+            _ = vis;
             switch (cell) {
                 TileTypes.Wall => s.drawSprite(x, y, s.GREEN, s.BLACK, '#'),
                 TileTypes.Floor => s.drawSprite(x, y, s.PASTEL_PINK, s.BLACK, '.'),
@@ -72,7 +73,7 @@ fn init() !void {
         .pos = undefined,
         .view = .{
             .visible_tiles = std.ArrayList(Vec2).init(allocator),
-            .range = 8,
+            .range = 4,
         },
     };
 
@@ -83,7 +84,6 @@ fn init() !void {
         .allocator = allocator,
         .map = m,
     };
-    m.computeFov(player.pos);
 }
 
 fn tick() !void {
