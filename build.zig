@@ -19,7 +19,7 @@ fn buildzlib(b: *std.Build, options: libOptions) *std.Build.Step.Compile {
     zRogue.addCSourceFiles(.{
         .files = &[_][]const u8{"lib/stb_impl.c"},
     });
-    zRogue.addIncludePath(.{ .path = "lib/" });
+    zRogue.addIncludePath(b.path("lib/"));
 
     return zRogue;
 }
@@ -71,7 +71,7 @@ pub fn build(b: *std.Build) void {
     zrogue_module.addCSourceFiles(.{
         .files = &[_][]const u8{"lib/stb_impl.c"},
     });
-    zrogue_module.addIncludePath(.{ .path = "lib/" });
+    zrogue_module.addIncludePath(b.path("lib/"));
 
     const exe = b.addExecutable(.{
         .name = "zRogue",

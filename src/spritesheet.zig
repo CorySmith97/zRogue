@@ -21,6 +21,7 @@ const Buffers = struct {
 };
 
 pub const WHITE = Color{ .r = 1.0, .g = 1.0, .b = 1.0 };
+pub const GRAY = Color{ .r = 0.75, .g = 0.75, .b = 0.75 };
 pub const BLACK = Color{ .r = 0.0, .g = 0.0, .b = 0.0 };
 pub const GREEN = Color{ .r = 0.0, .g = 1.0, .b = 0.0 };
 pub const MAGENTA = Color{ .r = 0.8, .g = 0.0, .b = 0.35 };

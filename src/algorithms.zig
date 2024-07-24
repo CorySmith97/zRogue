@@ -1,23 +1,23 @@
 const std = @import("std");
 const Vec2 = @import("geometry.zig").Vec2;
+const i32tof32 = @import("util.zig").i32tof32;
+const ArrayList = std.ArrayList;
+const print = std.debug.print;
+const assert = std.debug.assert;
 
-pub fn i32tof32(x: i32) f32 {
-    return @as(f32, @floatFromInt(x));
-}
-
-pub const Cardinal = enum { North, South, East, West };
-pub const CardinalList = [4]Cardinal{ Cardinal.North, Cardinal.South, Cardinal.East, Cardinal.West };
-pub const Quad = struct {
+const Cardinal = enum { North, South, East, West };
+const CardinalList = [4]Cardinal{ Cardinal.North, Cardinal.South, Cardinal.East, Cardinal.West };
+const Quad = struct {
     origin: Vec2,
     cardinal: Cardinal,
 
-    pub fn new(point: Vec2, card: Cardinal) Quad {
+    fn new(point: Vec2, card: Cardinal) Quad {
         return Quad{
             .origin = point,
             .cardinal = card,
         };
     }
-    pub fn transform(self: *Quad, tile: Tile) Vec2 {
+    fn transform(self: *Quad, tile: Tile) Vec2 {
         switch (self.cardinal) {
             Cardinal.North => return Vec2{ .x = self.origin.x + i32tof32(tile.column), .y = self.origin.y - i32tof32(tile.depth) },
             Cardinal.South => return Vec2{ .x = self.origin.x + i32tof32(tile.column), .y = self.origin.y + i32tof32(tile.depth) },
@@ -27,27 +27,24 @@ pub const Quad = struct {
     }
 };
 
-pub const Tile = struct {
+const Tile = struct {
     depth: i32,
     column: i32,
 };
 
-pub const Scanline = struct {
+const Scanline = struct {
     depth: i32,
     start_slope: f32,
     end_slope: f32,
-    allocator: std.mem.Allocator,
 
-    pub fn new(depth: i32, start_slope: f32, end_slope: f32) !Scanline {
-        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    fn new(depth: i32, start_slope: f32, end_slope: f32) !Scanline {
         return Scanline{
             .depth = depth,
             .start_slope = start_slope,
             .end_slope = end_slope,
-            .allocator = arena.allocator(),
         };
     }
-    pub fn tiles(self: *Scanline) ![]Tile {
+    fn tiles(self: *Scanline) ![]Tile {
         var allocator = std.heap.page_allocator;
 
         const start = roundTiesUp(i32tof32(self.depth) * self.start_slope);
@@ -56,78 +53,132 @@ pub const Scanline = struct {
         const range = end - start + 1;
         var t = try allocator.alloc(Tile, @intCast(@abs(range)));
 
-        var i: usize = 0;
         var column = start;
-        while (column < end) : (column += 1) {
+        for (0..@intCast(range)) |i| {
+            //print("Column: {}, Range: {}\n", .{ column, range });
             t[i] = Tile{ .depth = self.depth, .column = column };
-            i += 1;
+            column += 1;
         }
 
-        std.debug.print("tiles: {any}, range: {}\n", .{ t, range });
         return t;
     }
-    pub fn next(self: *Scanline) Scanline {
+    fn next(self: *Scanline) Scanline {
         return Scanline{
             .depth = self.depth + 1,
             .start_slope = self.start_slope,
             .end_slope = self.end_slope,
-            .allocator = self.allocator,
         };
     }
 };
 
-pub const FOV = struct {
-    tes: i32,
-};
-
-pub fn roundTiesUp(r: f32) i32 {
+fn roundTiesUp(r: f32) i32 {
     return @as(i32, @intFromFloat(std.math.floor(r + 0.5)));
 }
-pub fn roundTiesDown(r: f32) i32 {
+fn roundTiesDown(r: f32) i32 {
     return @as(i32, @intFromFloat(std.math.ceil(r - 0.5)));
 }
-pub fn slope(tile: Tile) f32 {
-    return @as(f32, @floatFromInt(2 * tile.column - 1 / 2 * tile.depth));
+fn slope(tile: Tile) f32 {
+    return i32tof32(2 * tile.column - 1) / i32tof32(2 * tile.depth);
 }
-pub fn isSymmetric(scanline: *Scanline, tile: Tile) bool {
+fn isSymmetric(scanline: *Scanline, tile: Tile) bool {
     const column = @as(f32, @floatFromInt(tile.column));
-    const depth = @as(f32, @floatFromInt(tile.depth));
+    const depth = @as(f32, @floatFromInt(scanline.depth));
     return (column >= depth * scanline.start_slope) and (column <= depth * scanline.end_slope);
 }
 
-pub const Scanner = struct {
-    //radius: i32,
-    //quad: Quad,
-    map: *anyopaque,
-    isOpaqueFn: *const fn (ptr: *anyopaque, idx: u32) bool,
+/// Interface to compute field of view
+/// MUST HAVE ITEMS IN MAP STRUCT
+/// - tiles: ArrayList(**Your tile type**),
+/// - visible_tiles: ArrayList(bool),
+/// - pub fn isTileOpaque(self: *Self) bool;
+/// - pub fn vec2ToIndex(self: *Self, vec: Vec2) u32;
+/// This function will populate the visible_tiles array
+/// with true for visible tiles, and false for non-visible
+pub fn FieldOfView(comptime T: type, map: *anyopaque, player_pos: Vec2, range: i32) !void {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+    const self: *T = @ptrCast(@alignCast(map));
 
-    pub fn init(ptr: anytype) Scanner {
-        const T = @TypeOf(ptr);
-        const ptr_info = @typeInfo(T);
+    // verify that the struct passed has the proper methods and fields
+    assert(std.meta.hasMethod(T, "isTileOpaque"));
+    assert(std.meta.hasMethod(T, "vec2ToIndex"));
+    assert(@hasField(T, "tiles"));
+    assert(@hasField(T, "visible_tiles"));
 
-        const gen = struct {
-            pub fn isOpaque(pointer: *anyopaque, idx: u32) bool {
-                const self: T = @ptrCast(@alignCast(pointer));
-                return ptr_info.Pointer.child.isTileOpaque(self, idx);
+    // Mark the player origin to visible
+    if (self.*.vec2ToIndex(player_pos)) |pos| {
+        self.*.visible_tiles.items[pos] = true;
+    }
+
+    // iterate through all the directions to run our shadowcast algorithm
+    // This algorithm is gotten from the below link.
+    // https://www.albertford.com/shadowcasting/
+    inline for (CardinalList) |dir| {
+        var quad = Quad.new(player_pos, dir);
+        var scanline = try Scanline.new(1, -1, 1);
+        const s = &scanline;
+        _ = s;
+
+        var stack = ArrayList(Scanline).init(allocator);
+        defer stack.deinit();
+
+        try stack.append(scanline);
+
+        while (stack.items.len != 0) {
+            var sl = stack.pop();
+            var prev_tile: ?Tile = null;
+            if (sl.depth * sl.depth > range * range) {
+                continue;
             }
-        };
 
-        return .{
-            .map = ptr,
-            .isOpaqueFn = gen.isOpaque,
-        };
+            const tiles = try sl.tiles();
+            defer std.heap.page_allocator.free(tiles);
+            for (tiles) |tile| {
+                const transformed_quad = quad.transform(tile);
+                const idx = self.*.vec2ToIndex(transformed_quad);
+                if (idx) |valid_idx| {
+                    if (self.*.isTileOpaque(valid_idx) or isSymmetric(&sl, tile)) {
+                        try self.*.markTileVisible(transformed_quad);
+                    }
+                    if (prev_tile) |prev| {
+                        const previous_transformed_quad = quad.transform(prev);
+                        const prev_idx = self.*.vec2ToIndex(previous_transformed_quad);
+
+                        if (prev_idx) |valid_prev_idx| {
+                            if (self.*.isTileOpaque(valid_prev_idx) and !self.*.isTileOpaque(valid_idx)) {
+                                sl.start_slope = slope(tile);
+                            }
+                            if (!self.*.isTileOpaque(valid_prev_idx) and self.*.isTileOpaque(valid_idx)) {
+                                var nextline = sl.next();
+                                nextline.end_slope = slope(tile);
+                                try stack.append(nextline);
+                            }
+                        }
+                    }
+                }
+                prev_tile = tile;
+            }
+            if (prev_tile) |prev| {
+                const previous_transformed_quad = quad.transform(prev);
+                const prev_idx = self.*.vec2ToIndex(previous_transformed_quad);
+                if (prev_idx) |valid_prev_idx| {
+                    if (!self.*.isTileOpaque(valid_prev_idx)) {
+                        try stack.append(sl.next());
+                    }
+                }
+            }
+        }
     }
-    fn isOpaque(self: Scanner, idx: u32) bool {
-        return self.isOpaqueFn(self.map, idx);
-    }
-};
+}
 
-pub fn fieldOfView(map: anytype) FOV {
-    const T = @TypeOf(map);
-    const m_info = @typeInfo(T);
-
-    std.debug.print("Test Type:{any}, point: {}\n", .{ T, m_info });
-    return FOV{
-        .tes = 3,
-    };
+pub fn astar(comptime T: type, map: *anyopaque, origin: Vec2, target: Vec2) void {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+    const self: *T = @ptrCast(@alignCast(map));
+    _ = origin;
+    _ = target;
+    _ = allocator;
+    _ = self;
 }

@@ -18,87 +18,16 @@ pub fn usizetof32(x: usize) f32 {
 
 const Self = @This();
 tiles: ArrayList(TileTypes),
-vis_tiles: ArrayList(bool),
+visible_tiles: ArrayList(bool),
+revealed_tiles: ArrayList(bool),
 rooms: ArrayList(Rect),
 width: f32,
 height: f32,
 
-//pub fn scanner(self: *Self) app.Algorithms.Scanner {
-//    return app.Algorithms.Scanner.init(self, TileTypes);
-//}
-
-pub fn computeFov(self: *Self, playerPos: Vec2, viewRange: i32) !void {
-    const player_idx = self.vec2ToIndex(playerPos);
-    if (player_idx) |idx| {
-        self.vis_tiles.items[idx] = true;
-    }
-
-    for (app.Algorithms.CardinalList) |f| {
-        var quad = a.Quad.new(playerPos, f);
-        var sl = try a.Scanline.new(1, -1, 1);
-        if (sl.depth * sl.depth > viewRange) {
-            continue;
-        }
-        try self.scan(&sl, &quad);
-    }
-}
-
-pub fn scan(self: *Self, firstLine: *a.Scanline, quad: *a.Quad) !void {
-    var stack = std.ArrayList(a.Scanline).init(std.heap.page_allocator);
-    defer stack.deinit();
-
-    try stack.append(firstLine.*);
-
-    while (stack.items.len != 0) {
-        var scanline = stack.pop();
-        var prev_tile: ?a.Tile = null;
-
-        const tiles = try scanline.tiles();
-        for (tiles) |tile| {
-            const transformedQuad = quad.transform(tile);
-            const idx = self.vec2ToIndex(transformedQuad);
-
-            if (idx) |valid_idx| {
-                if (self.isTileOpaque(valid_idx) or a.isSymmetric(&scanline, tile)) {
-                    try self.markTileVisible(transformedQuad);
-                }
-
-                if (prev_tile) |prev| {
-                    const previous_transformed = quad.transform(prev);
-                    const prev_idx = self.vec2ToIndex(previous_transformed);
-
-                    if (prev_idx) |valid_prev_idx| {
-                        if (self.isTileOpaque(valid_prev_idx) and !self.isTileOpaque(valid_idx)) {
-                            scanline.start_slope = a.slope(tile);
-                        }
-
-                        if (!self.isTileOpaque(valid_prev_idx) and self.isTileOpaque(valid_idx)) {
-                            var next_line = scanline.next();
-                            next_line.end_slope = a.slope(tile);
-                            try stack.append(next_line);
-                        }
-                    }
-                }
-
-                prev_tile = tile;
-            }
-        }
-
-        if (prev_tile) |prev| {
-            const previous_transformed = quad.transform(prev);
-            const prev_idx = self.vec2ToIndex(previous_transformed);
-            if (prev_idx) |valid_prev_idx| {
-                if (!self.isTileOpaque(valid_prev_idx)) {
-                    try stack.append(scanline.next());
-                }
-            }
-        }
-    }
-}
 pub fn markTileVisible(self: *Self, pos: Vec2) !void {
     const idx = self.vec2ToIndex(pos);
     if (idx) |indx| {
-        self.vis_tiles.items[indx] = true;
+        self.visible_tiles.items[indx] = true;
     }
 }
 // This is the index function to translate x/y coordinates
@@ -165,7 +94,8 @@ pub fn vertical_tunnel(self: *Self, y1: f32, y2: f32, x: f32) void {
 pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) !Self {
     var map = Self{
         .tiles = try std.ArrayList(TileTypes).initCapacity(alloc, 80 * 50),
-        .vis_tiles = try std.ArrayList(bool).initCapacity(alloc, 80 * 50),
+        .visible_tiles = try std.ArrayList(bool).initCapacity(alloc, 80 * 50),
+        .revealed_tiles = try std.ArrayList(bool).initCapacity(alloc, 80 * 50),
         .rooms = std.ArrayList(Rect).init(alloc),
         .width = 80,
         .height = 50,
@@ -173,7 +103,8 @@ pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) !Self {
 
     for (0..(80 * 50)) |i| {
         try map.tiles.insert(i, TileTypes.Wall);
-        try map.vis_tiles.insert(i, false);
+        try map.visible_tiles.insert(i, false);
+        try map.revealed_tiles.insert(i, false);
     }
 
     const MAX_ROOMS = 30;
@@ -222,7 +153,6 @@ pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) !Self {
 pub fn vec2ToIndex(self: *Self, vec: Vec2) ?u32 {
     const bounds = self.dimensions();
     const scratch = (vec.y * bounds.x);
-    std.debug.print("bounds: {}, {}, scratch: {} vec2: {any}\n", .{ bounds.x, bounds.y, scratch, vec });
     const idx = @as(u32, @intFromFloat((scratch + vec.x)));
     if (idx > 0 and idx < self.tiles.items.len) {
         return idx;
@@ -237,7 +167,7 @@ pub fn dimensions(self: *Self) Vec2 {
 
 pub fn isTileOpaque(self: *Self, idx: u32) bool {
     if (idx >= self.tiles.items.len) {
-        return false;
+        return true;
     } else {
         return self.tiles.items[idx] == TileTypes.Wall;
     }

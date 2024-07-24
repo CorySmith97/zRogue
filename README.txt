@@ -7,6 +7,10 @@
            ╚══════╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝  ╚═════╝ ╚══════╝
                                                      
                                                      
+=== UPDATES ===
+zRogue is currently undergoing updates to the master branch of zig. Not all 
+features may work as intended.
+
 
 This is a library designed to help zig developers build a simple roguelike game in zig.
 Wherever possible I am aiming to handle everything in zig. There is however one 

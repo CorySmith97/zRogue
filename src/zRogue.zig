@@ -6,11 +6,11 @@
 /// ███████╗██║  ██║╚██████╔╝╚██████╔╝╚██████╔╝███████╗
 /// ╚══════╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝  ╚═════╝ ╚══════╝
 
-// seperation
+//
 
 /// These are the interfaces for the main library.
 pub const Image = @import("image.zig");
-pub const Shader = @import("Shader.zig");
+pub const Shader = @import("shader.zig");
 pub const Window = @import("window.zig");
 pub const Sprite = @import("spritesheet.zig");
 pub const Algorithms = @import("algorithms.zig");
@@ -50,14 +50,14 @@ pub var rng: std.Random.Xoshiro256 = undefined;
 /// }
 /// cleanup()
 pub fn run(app: AppDesc) !void {
-    rng = std.rand.DefaultPrng.init(blk: {
+    rng = std.Random.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));
         break :blk seed;
     });
 
     var img = try Image.init("src/assets/vga8x16.jpg");
-    var window = Window.init(app.title, 1200, 750);
+    var window = Window.init(app.title, 1200, 800);
     window.createWindow();
     defer window.deinit();
 

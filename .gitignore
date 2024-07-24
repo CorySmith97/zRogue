@@ -5,3 +5,5 @@
 .DS_Store
 /src/.DS_Store
 /lib
+libzRogue.a
+libzRogue.a.o
