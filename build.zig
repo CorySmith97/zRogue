@@ -17,7 +17,7 @@ fn buildzlib(b: *std.Build, options: libOptions) *std.Build.Step.Compile {
     zRogue.linkSystemLibrary("epoxy");
     zRogue.linkLibC();
     zRogue.addCSourceFiles(.{
-        .files = &[_][]const u8{"lib/stb_impl.c"},
+        .files = &[_][]const u8{"lib/fake.c"},
     });
     zRogue.addIncludePath(b.path("lib/"));
 
@@ -43,7 +43,7 @@ fn buildExample(b: *std.Build, comptime name: []const u8, options: ExampleOption
     example.root_module.addImport("zRogue", options.mod_zRogue);
     b.installArtifact(example);
     run = b.addRunArtifact(example);
-    b.step("run-" ++ name, "Run" ++ name).dependOn(&run.?.step);
+    b.step("run-" ++ name, "Run " ++ name).dependOn(&run.?.step);
 }
 
 pub fn build(b: *std.Build) void {
@@ -59,18 +59,17 @@ pub fn build(b: *std.Build) void {
         "draw-sprite",
         "draw-map",
     };
-    //    "user-input",
-    //    "movable-sprite",
+    // Uncomment these as needed
+    // "user-input",
+    // "movable-sprite",
 
-    const lib = buildzlib(b, .{ .target = target, .optimization = optimize });
-    const zrogue_module = b.addModule(
-        "zRogue",
-        .{ .root_source_file = b.path("src/zRogue.zig") },
-    );
-    zrogue_module.linkLibrary(lib);
-    zrogue_module.addCSourceFiles(.{
-        .files = &[_][]const u8{"lib/stb_impl.c"},
+    const lib = buildzlib(b, .{
+        .target = target,
+        .optimization = optimize,
     });
+
+    const zrogue_module = b.addModule("zRogue", .{ .root_source_file = b.path("src/zRogue.zig") });
+    zrogue_module.linkLibrary(lib);
     zrogue_module.addIncludePath(b.path("lib/"));
 
     const exe = b.addExecutable(.{
@@ -84,7 +83,6 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
-
     run_cmd.step.dependOn(b.getInstallStep());
 
     if (b.args) |args| {
@@ -93,8 +91,12 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    //Run examples
+    // Run examples
     inline for (examples) |ex| {
-        try buildExample(b, ex, .{ .mod_zRogue = zrogue_module, .target = target, .optimize = optimize });
+        try buildExample(b, ex, .{
+            .mod_zRogue = zrogue_module,
+            .target = target,
+            .optimize = optimize,
+        });
     }
 }
