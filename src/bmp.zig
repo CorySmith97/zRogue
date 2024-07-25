@@ -17,7 +17,7 @@ const Header = extern struct {
     height: u32 align(1),
 };
 
-pub fn create(compressed_bytes: []const u8) Bmp {
+pub fn create(compressed_bytes: []const u8) !Bmp {
     const header: *const Header = @ptrCast(compressed_bytes);
     assert(header.magic[0] == 'B');
     assert(header.magic[1] == 'M');
@@ -26,9 +26,10 @@ pub fn create(compressed_bytes: []const u8) Bmp {
     const channel_count = 3;
     const width = header.width;
     const height = header.height;
-    const pitch = width * bits_per_channel * channel_count / 8;
+    const pitch = (width * bits_per_channel * channel_count / 8) & ~@as(u32, 3);
+    const raw = compressed_bytes[header.pixel_offset..][0..(height * pitch)];
     return .{
-        .raw = compressed_bytes[header.pixel_offset..][0 .. height * pitch],
+        .raw = raw,
         .width = width,
         .height = height,
         .pitch = pitch,

@@ -15,6 +15,7 @@ pub const Window = @import("window.zig");
 pub const Sprite = @import("spritesheet.zig");
 pub const Algorithms = @import("algorithms.zig");
 pub const Geometry = @import("geometry.zig");
+const BMP = @import("bmp.zig");
 // Imports
 const std = @import("std");
 const log = std.log;
@@ -56,16 +57,23 @@ pub fn run(app: AppDesc) !void {
         break :blk seed;
     });
 
-    var img = try Image.init("src/assets/vga8x16.jpg");
+    const embedded_bmp = @embedFile("assets/vga8x16.bmp");
+
+    const bm = try BMP.create(embedded_bmp);
+
+    var img = Image.initFromBmp(bm);
     var window = Window.init(app.title, 1200, 800);
     window.createWindow();
     defer window.deinit();
 
     try window.getGLContext();
 
-    const shd = try Shader.init("src/assets/vert.vs", "src/assets/frag.fs");
+    const embedded_vs = @embedFile("assets/vert.vs");
+    const embedded_fs = @embedFile("assets/frag.fs");
+
+    const shd = try Shader.init(embedded_vs, embedded_fs);
     const texture = try img.imgToTexture();
-    img.free();
+    //img.free();
 
     if (app.init) |init| {
         try init();

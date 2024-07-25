@@ -10,25 +10,14 @@ pub fn init(vs_path: []const u8, fs_path: []const u8) !Self {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var vs_file = try std.fs.cwd().openFile(vs_path, .{});
-    defer vs_file.close();
-    const vs_file_size = try vs_file.getEndPos();
-    const vs_buffer = try allocator.alloc(u8, @intCast(vs_file_size));
-    const vs_bytes = try vs_file.readAll(vs_buffer);
-    _ = vs_bytes;
+    _ = allocator;
     const vs: u32 = c.glCreateShader(c.GL_VERTEX_SHADER);
-    c.glShaderSource(vs, 1, &vs_buffer.ptr, null);
+    c.glShaderSource(vs, 1, &vs_path.ptr, null);
     c.glCompileShader(vs);
     try checkShaderCompilation(vs);
 
-    var fs_file = try std.fs.cwd().openFile(fs_path, .{});
-    defer fs_file.close();
-    const fs_file_size = try fs_file.getEndPos();
-    const fs_buffer = try allocator.alloc(u8, @intCast(fs_file_size));
-    const fs_bytes = try fs_file.readAll(fs_buffer);
-    _ = fs_bytes;
     const fs: u32 = c.glCreateShader(c.GL_FRAGMENT_SHADER);
-    c.glShaderSource(fs, 1, &fs_buffer.ptr, null);
+    c.glShaderSource(fs, 1, &fs_path.ptr, null);
     c.glCompileShader(fs);
     try checkShaderCompilation(fs);
 
