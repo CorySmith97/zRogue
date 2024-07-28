@@ -1,4 +1,5 @@
-const app = @import("zRogue");
+const zRogue = @import("zRogue");
+const app = @import("zRogue").App;
 const s = app.Sprite;
 
 pub fn tick() !void {
@@ -22,7 +23,7 @@ pub fn tick() !void {
 }
 
 pub fn main() !void {
-    try app.run(.{
+    try zRogue.run(.{
         .title = "Draw Sprite",
         .tick = tick,
     });

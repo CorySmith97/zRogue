@@ -35,3 +35,15 @@ pub fn create(compressed_bytes: []const u8) !Bmp {
         .pitch = pitch,
     };
 }
+
+pub fn flipVertically(self: *Bmp, allocator: std.mem.Allocator) !void {
+    const scratch = try allocator.alloc(u8, self.raw.len);
+
+    var reverse_height: u32 = 0;
+    var height = self.height;
+    while (height > 0) : (height -= 1) {
+        try std.mem.concat(allocator, u8, [_][]const u8{ scratch[reverse_height * self.pitch], self.raw[(height - 1)..(height * self.pitch)] });
+        reverse_height += 1;
+    }
+    self.raw = scratch;
+}

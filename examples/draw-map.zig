@@ -1,6 +1,7 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
-const app = @import("zRogue");
+const zRogue = @import("zRogue");
+const app = zRogue.App;
 const s = app.Sprite;
 
 const TileTypes = enum { Wall, Floor };
@@ -39,7 +40,7 @@ pub fn newMap() !std.ArrayList(TileTypes) {
         map.items[index(79, y)] = TileTypes.Wall;
     }
 
-    const rand = app.rng.random();
+    const rand = zRogue.rng.random();
 
     var i: f32 = 0;
     while (i < 400) : (i += 1) {
@@ -91,17 +92,17 @@ pub fn tick() !void {
 
     s.drawSprite(state.player.x, state.player.y, state.player.foreground_color, state.player.background_color, state.player.sprite);
 }
-pub fn events(event: *app.Event) !void {
-    if (event.isKeyDown(app.KEY_A)) {
+pub fn events(event: *zRogue.Event) !void {
+    if (event.isKeyDown(zRogue.KEY_A)) {
         state.player.x -= 1;
     }
-    if (event.isKeyDown(app.KEY_D)) {
+    if (event.isKeyDown(zRogue.KEY_D)) {
         state.player.x += 1;
     }
-    if (event.isKeyDown(app.KEY_W)) {
+    if (event.isKeyDown(zRogue.KEY_W)) {
         state.player.y -= 1;
     }
-    if (event.isKeyDown(app.KEY_S)) {
+    if (event.isKeyDown(zRogue.KEY_S)) {
         state.player.y += 1;
     }
 }
@@ -111,7 +112,7 @@ pub fn cleanup() !void {
 }
 
 pub fn main() !void {
-    try app.run(.{
+    try zRogue.run(.{
         .init = init,
         .tick = tick,
         .events = events,

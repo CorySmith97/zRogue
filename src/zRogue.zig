@@ -9,17 +9,18 @@
 //
 
 /// These are the interfaces for the main library.
-pub const Image = @import("image.zig");
-pub const Shader = @import("shader.zig");
-pub const Window = @import("window.zig");
-pub const Sprite = @import("spritesheet.zig");
+pub const App = @import("app.zig");
+const Image = App.Image;
+const Shader = App.Shader;
+const Window = App.Window;
+const Sprite = App.Sprite;
+const BMP = App.Bmp;
+const c = App.c;
 pub const Algorithms = @import("algorithms.zig");
-pub const Geometry = @import("geometry.zig");
-const BMP = @import("bmp.zig");
+pub const Geometry = @import("math/geometry.zig");
 // Imports
 const std = @import("std");
 const log = std.log;
-const c = @import("c.zig");
 
 /// Struct for initializing a new app. This
 /// is passed into the run function which then
@@ -51,6 +52,10 @@ pub var rng: std.Random.Xoshiro256 = undefined;
 /// }
 /// cleanup()
 pub fn run(app: AppDesc) !void {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+    _ = allocator;
     rng = std.Random.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));
@@ -60,6 +65,7 @@ pub fn run(app: AppDesc) !void {
     const embedded_bmp = @embedFile("assets/vga8x16.bmp");
 
     const bm = try BMP.create(embedded_bmp);
+    //try bm.flipVertically(allocator);
 
     var img = Image.initFromBmp(bm);
     var window = Window.init(app.title, 1200, 800);

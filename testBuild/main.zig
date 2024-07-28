@@ -1,11 +1,12 @@
 const std = @import("std");
-const app = @import("zRogue");
-const run = app.run;
+const zRogue = @import("zRogue");
+const run = zRogue.run;
+const app = zRogue.App;
 const s = app.Sprite;
-const a = app.Algorithms;
+const a = zRogue.Algorithms;
 const Map = @import("map.zig");
 const types = @import("types.zig");
-const Vec2 = app.Geometry.Vec2;
+const Vec2 = zRogue.Geometry.Vec2;
 const TileTypes = types.TileTypes;
 const ArrayList = std.ArrayList;
 
@@ -154,24 +155,24 @@ fn tick() !void {
     s.print(0, 0, s.WHITE, s.BLACK, [_]u8{196} ** 10 ++ ">LOG<" ++ [_]u8{196} ** 65);
 }
 
-pub fn input(event: *app.Event) !void {
-    if (event.isKeyDown(app.KEY_A)) {
+pub fn input(event: *zRogue.Event) !void {
+    if (event.isKeyDown(zRogue.KEY_A)) {
         state.tryToMove(-1, 0);
         try state.fov();
     }
-    if (event.isKeyDown(app.KEY_D)) {
+    if (event.isKeyDown(zRogue.KEY_D)) {
         state.tryToMove(1, 0);
         try state.fov();
     }
-    if (event.isKeyDown(app.KEY_W)) {
+    if (event.isKeyDown(zRogue.KEY_W)) {
         state.tryToMove(0, -1);
         try state.fov();
     }
-    if (event.isKeyDown(app.KEY_S)) {
+    if (event.isKeyDown(zRogue.KEY_S)) {
         state.tryToMove(0, 1);
         try state.fov();
     }
-    if (event.isKeyDown(app.KEY_Escape)) {
+    if (event.isKeyDown(zRogue.KEY_Escape)) {
         event.windowShouldClose(true);
     }
 }
