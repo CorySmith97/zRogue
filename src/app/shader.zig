@@ -6,11 +6,6 @@ id: u32,
 
 /// Loads the shaders at the given paths
 pub fn init(vs_path: []const u8, fs_path: []const u8) !Self {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
-    _ = allocator;
     const vs: u32 = c.glCreateShader(c.GL_VERTEX_SHADER);
     c.glShaderSource(vs, 1, &vs_path.ptr, null);
     c.glCompileShader(vs);

@@ -57,3 +57,8 @@ pub fn drawBackgroundColor(self: *Self, r: f32, g: f32, b: f32) void {
     c.glClearColor(r, g, b, 1.0);
     c.glClear(c.GL_COLOR_BUFFER_BIT);
 }
+
+test "window" {
+    const window = Self.init("test", 800, 600);
+    std.testing.expect(window.window == null);
+}
