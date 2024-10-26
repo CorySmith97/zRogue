@@ -55,7 +55,7 @@ pub fn swapWindow(self: *Self) void {
 pub fn drawBackgroundColor(self: *Self, r: f32, g: f32, b: f32) void {
     _ = self;
     c.glClearColor(r, g, b, 1.0);
-    c.glClear(c.GL_COLOR_BUFFER_BIT);
+    c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
 }
 
 test "window" {

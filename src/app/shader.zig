@@ -64,3 +64,8 @@ fn setFloat(self: *Self, name: []const u8, value: f32) void {
     const location = c.glGetUniformLocation(self.id, name);
     c.glUniform1f(location, value);
 }
+
+pub fn setMat4(self: *Self, name: [*c]const u8, value: [16]f32) void {
+    const location = c.glGetUniformLocation(self.id, name);
+    c.glUniformMatrix4fv(location, 1, c.GL_FALSE, &value);
+}

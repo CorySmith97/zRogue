@@ -6,7 +6,12 @@ const print = std.debug.print;
 const assert = std.debug.assert;
 
 const Cardinal = enum { North, South, East, West };
-const CardinalList = [4]Cardinal{ Cardinal.North, Cardinal.South, Cardinal.East, Cardinal.West };
+const CardinalList = [4]Cardinal{
+    Cardinal.North,
+    Cardinal.South,
+    Cardinal.East,
+    Cardinal.West,
+};
 const Quad = struct {
     origin: Vec2,
     cardinal: Cardinal,

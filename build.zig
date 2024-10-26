@@ -58,6 +58,7 @@ pub fn build(b: *std.Build) void {
         "basic-window",
         "draw-sprite",
         "draw-map",
+        "network",
     };
     // Uncomment these as needed
     // "user-input",
@@ -68,7 +69,7 @@ pub fn build(b: *std.Build) void {
         .optimization = optimize,
     });
 
-    const zrogue_module = b.addModule("zRogue", .{ .root_source_file = b.path("src/zRogue.zig") });
+    const zrogue_module = b.addModule("zRogue", .{ .root_source_file = b.path("src/root.zig") });
     zrogue_module.linkLibrary(lib);
     zrogue_module.addIncludePath(b.path("lib/"));
 
