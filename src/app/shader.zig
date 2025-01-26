@@ -65,6 +65,19 @@ fn setFloat(self: *Self, name: []const u8, value: f32) void {
     c.glUniform1f(location, value);
 }
 
+pub fn set2Float(self: *Self, name: []const u8, value: []f32) void {
+    const location = c.glGetUniformLocation(self.id, name);
+    c.glUniform2fv(location, value);
+}
+
+pub fn setVec3(self: *Self, name: [*c]const u8, value: [300]f32) void {
+    const location = c.glGetUniformLocation(self.id, name);
+    if (location == -1) {
+        @panic("LOCATION ERROR");
+    }
+    c.glUniform3fv(location, 100, &value);
+}
+
 pub fn setMat4(self: *Self, name: [*c]const u8, value: [16]f32) void {
     const location = c.glGetUniformLocation(self.id, name);
     c.glUniformMatrix4fv(location, 1, c.GL_FALSE, &value);

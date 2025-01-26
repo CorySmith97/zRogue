@@ -10,14 +10,12 @@ out vec3 norm;
 out vec3 fg;
 out vec3 bg;
 
-uniform vec3 offsets[100];
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
 void main() {
-    vec3 offset = offsets[gl_InstanceID];
-    vec4 worldPos = model * vec4(aPos + offset, 1.0);
+    vec4 worldPos = model * vec4(aPos, 1.0);
 
     texCoords = aTexCoords;
     norm = aNorm;
@@ -26,3 +24,4 @@ void main() {
     gl_Position = projection * view * worldPos;
 
 }
+

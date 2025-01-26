@@ -24,7 +24,7 @@ pub fn init(
     const target = .{ 0, 0, 0 };
     const up = .{ 0, 1, 0 };
     const near_plane = 0.1;
-    const far_plane = 100;
+    const far_plane = 1000;
     const fov = 45;
 
     const view_matrix: mat4 = lookAt(position, target, up);
@@ -75,14 +75,14 @@ pub fn front(self: *Self) vec3 {
 }
 
 pub fn rotate(self: *Self, angle: f32) void {
-    self.rotation += angle;
+    self.rotation = angle * 2 * std.math.pi / 180;
 
-    const radius = 2;
+    const radius = distanceBetweenVec3(self.position, self.target);
 
-    self.position[0] = radius * @cos(self.rotation);
-    self.position[2] = radius * @sin(self.rotation);
+    self.position[0] = self.position[0] + radius * @cos(self.rotation);
+    self.position[2] = self.position[2] + radius * @sin(self.rotation);
 
-    self.view_matrix = lookAt(.{ self.position[0], 0, self.position[2] }, self.target, self.up);
+    self.view_matrix = lookAt(.{ self.position[0], self.position[1], self.position[2] }, self.target, self.up);
 }
 
 pub fn lookAt(pos: vec3, target: vec3, up: vec3) mat4 {
@@ -91,9 +91,9 @@ pub fn lookAt(pos: vec3, target: vec3, up: vec3) mat4 {
     const y_axis = crossVec3(z_axis, x_axis);
 
     const view: mat4 = .{
-        x_axis[0],             y_axis[0],            z_axis[0],             0,
-        x_axis[1],             y_axis[1],            z_axis[1],             0,
-        x_axis[2],             y_axis[2],            z_axis[2],             0,
+        x_axis[0],             y_axis[0],            -z_axis[0],            0,
+        x_axis[1],             y_axis[1],            -z_axis[1],            0,
+        x_axis[2],             y_axis[2],            -z_axis[2],            0,
         -dotVec3(x_axis, pos), dotVec3(y_axis, pos), -dotVec3(z_axis, pos), 1,
     };
     return view;
@@ -153,7 +153,22 @@ pub fn perspective(
     return proj;
 }
 
-pub fn ortho(left: f32, right: f32, top: f32, bottom: f32, near: f32, far: f32) mat4 {
+pub fn ortho(
+    left: f32,
+    right: f32,
+    top: f32,
+    bottom: f32,
+    near: f32,
+    far: f32,
+) mat4 {
     const mat: mat4 = .{ 2.0 / (right - left), 0, 0, -(right + left) / (right - left), 0, 2.0 / (top - bottom), 0, -(top + bottom) / (top - bottom), 0, 0, 2.0 / (far - near), -(far + near) / (far - near), 0, 0, 0, 1 };
     return mat;
+}
+
+pub fn magnitudeVec3(v1: vec3) f32 {
+    return @sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2]);
+}
+
+pub fn computeAngleBetweenVec3(v1: vec3, v2: vec3) f32 {
+    return std.math.acos(dotVec3(v1, v2) / (magnitudeVec3(v1) * magnitudeVec3(v2)));
 }
