@@ -190,7 +190,7 @@ pub fn main() !void {
     try run(.{
         .title = "zRogue",
         .init = init,
-        //.tick = tick,
+        .tick = tick,
         .events = input,
         .cleanup = cleanup,
     });

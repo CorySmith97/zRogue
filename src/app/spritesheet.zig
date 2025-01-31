@@ -39,7 +39,7 @@ pub const PASTEL_BLUE = Color{ .r = 0.575, .g = 0.77, .b = 0.9 };
 pub const PASTEL_YELLOW = Color{ .r = 0.9, .g = 0.9, .b = 0.575 };
 pub const PASTEL_ORANGE = Color{ .r = 0.9, .g = 0.75, .b = 0.575 };
 
-fn makeVao(points: [4][11]f32) Buffers {
+fn makeVao(points: [4][10]f32) Buffers {
     const indices = [_][3]u32{
         [_]u32{ 0, 1, 2 },
         [_]u32{ 0, 2, 3 },
@@ -70,43 +70,43 @@ fn makeVao(points: [4][11]f32) Buffers {
 
     c.glVertexAttribPointer(
         0,
-        3,
+        2,
         c.GL_FLOAT,
         c.GL_FALSE,
-        11 * @sizeOf(f32),
+        10 * @sizeOf(f32),
         c_offset,
     );
     c.glEnableVertexAttribArray(0);
 
-    const fg_offset = @as(?*anyopaque, @ptrFromInt(3 * @sizeOf(f32)));
+    const fg_offset = @as(?*anyopaque, @ptrFromInt(2 * @sizeOf(f32)));
     c.glVertexAttribPointer(
         1,
         3,
         c.GL_FLOAT,
         c.GL_FALSE,
-        11 * @sizeOf(f32),
+        10 * @sizeOf(f32),
         fg_offset,
     );
     c.glEnableVertexAttribArray(1);
 
-    const bg_offset = @as(?*anyopaque, @ptrFromInt(6 * @sizeOf(f32)));
+    const bg_offset = @as(?*anyopaque, @ptrFromInt(5 * @sizeOf(f32)));
     c.glVertexAttribPointer(
         2,
         3,
         c.GL_FLOAT,
         c.GL_FALSE,
-        11 * @sizeOf(f32),
+        10 * @sizeOf(f32),
         bg_offset,
     );
     c.glEnableVertexAttribArray(2);
 
-    const tex_offset = @as(?*anyopaque, @ptrFromInt(9 * @sizeOf(f32)));
+    const tex_offset = @as(?*anyopaque, @ptrFromInt(8 * @sizeOf(f32)));
     c.glVertexAttribPointer(
         3,
         2,
         c.GL_FLOAT,
         c.GL_FALSE,
-        11 * @sizeOf(f32),
+        10 * @sizeOf(f32),
         tex_offset,
     );
     c.glEnableVertexAttribArray(3);
@@ -142,19 +142,18 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
 
     const x = @as(f32, @floatFromInt(ascii_tex_pos_x));
     const y = 15 - @as(f32, @floatFromInt(ascii_tex_pos_y));
-    const pos_x = 0.025 * cell_x - 1;
-    const pos_y = 0.04 * (cell_y) - 2;
+    const pos_x = 0.025 * cell_x;
+    const pos_y = 0.04 * (-cell_y);
     const tex_x_offset = 1.0 / 16.0;
     const tex_y_offset = 1.0 / 16.0;
     const cell_size_x = 1.0 / 80.0;
     const cell_size_y = 1.0 / 50.0;
 
-    const vertices = [_][11]f32{
+    const vertices = [_][10]f32{
         [_]f32{
             // position
             cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
             cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
-            0.0,
             // fg
             fg.r,
             fg.g,
@@ -171,7 +170,6 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             // position
             cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
             cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
-            0.0,
             // fg
             fg.r,
             fg.g,
@@ -188,7 +186,6 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             // position
             cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
             cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
-            0.0,
             // fg
             fg.r,
             fg.g,
@@ -205,7 +202,6 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             // position
             cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
             cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
-            0.0,
             // fg
             fg.r,
             fg.g,

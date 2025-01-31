@@ -44,16 +44,6 @@ pub const AppDesc = struct {
     cleanup: ?*const fn () anyerror!void = null,
 };
 
-const ver = struct {
-    pos: [3]f32,
-    norm: [3]f32,
-    tex: [2]f32,
-
-    pub fn toArray(self: *ver) []f32 {
-        var array = self.pos ++ self.norm ++ self.tex;
-        return &array;
-    }
-};
 pub var rng: std.Random.Xoshiro256 = undefined;
 
 /// This funciton is our app's entry point. We use struct intializatiteston
@@ -67,9 +57,6 @@ pub var rng: std.Random.Xoshiro256 = undefined;
 /// }
 /// cleanup()
 pub fn run(app: AppDesc) !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
     rng = std.Random.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));
@@ -90,83 +77,15 @@ pub fn run(app: AppDesc) !void {
 
     const embedded_vs = @embedFile("assets/vert.vs");
     const embedded_fs = @embedFile("assets/frag.fs");
-    const mesh_vs = @embedFile("assets/mesh.vs");
-    const mesh_fs = @embedFile("assets/mesh.fs");
-    const target_vs = @embedFile("assets/target.vs.glsl");
-    const target_fs = @embedFile("assets/target.fs.glsl");
 
     const texture = try img.imgToTexture();
-    var textures = std.ArrayList(Mesh.Texture).init(allocator);
-    try textures.append(.{ .id = texture, .name = "sheet" });
-    var m2: Mesh = undefined;
-    try m2.init(
-        .{
-            .cube = .{
-                .atlas_id = .{ '+', 254, '+' },
-                .fg_sides = Sprite.PASTEL_PURPLE,
-                .bg_sides = Sprite.WHITE,
-                .fg_top = Sprite.PASTEL_BLUE,
-                .bg_top = Sprite.WHITE,
-                .fg_bottom = Sprite.PURPLE,
-                .bg_bottom = Sprite.BLACK,
-            },
-        },
-        target_vs,
-        target_fs,
-        std.heap.page_allocator,
-        textures,
-    );
-    var m: Mesh = undefined;
-    try m.init(
-        .{
-            .cube = .{
-                .atlas_id = .{ '%', 254, '#' },
-                .fg_sides = Sprite.PURPLE,
-                .bg_sides = Sprite.BLACK,
-                .fg_top = Sprite.GREEN,
-                .bg_top = Sprite.BLACK,
-                .fg_bottom = Sprite.PURPLE,
-                .bg_bottom = Sprite.BLACK,
-            },
-        },
-        mesh_vs,
-        mesh_fs,
-        std.heap.page_allocator,
-        textures,
-    );
-    //std.log.info("{any}", .{m});
-    var v = ver{
-        .pos = .{ 1, 1, 1 },
-        .norm = .{ 2, 2, 2 },
-        .tex = .{ 1, 1 },
-    };
-    std.log.info("Array: {any}", .{v.toArray()});
-    var camera: Camera = undefined;
-    camera.init(@as(f32, @floatFromInt(1200 / 800)));
-    var shd = try Shader.init(embedded_vs, embedded_fs);
-    _ = &shd; // autofix
-    var shd3 = try Shader.init(target_vs, target_fs);
-    _ = &shd3; // autofix
+    const shd = try Shader.init(embedded_vs, embedded_fs);
 
-    c.glUseProgram(m.shader.id);
-    var arr: [300]f32 = undefined;
-    for (0..100) |i| {
-        arr[i * 3] = @as(f32, @floatFromInt(i)) + 3;
-        arr[i * 3 + 1] = 0;
-        arr[i * 3 + 2] = 0;
-    }
-    m.shader.setVec3("offsets", arr);
     const err = c.glGetError();
     if (err != c.GL_NO_ERROR) {
         std.log.err("OpenGL error: {}", .{err});
     }
 
-    const model_matrix: Camera.mat4 = .{
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1,
-    };
     //img.free();
 
     if (app.init) |init| {
@@ -198,83 +117,81 @@ pub fn run(app: AppDesc) !void {
             }
         }
 
-        std.log.info("position: {any}", .{camera.position});
-        std.log.info("target: {any}", .{camera.target});
-
         const keystate = c.SDL_GetKeyboardState(null);
+        _ = keystate;
 
-        if (keystate[c.SDL_SCANCODE_W] == 1) {
-            const front = camera.front();
-            camera.position[0] += front[0] * 0.016;
-            camera.position[2] += front[2] * 0.016;
-            camera.target[0] += front[0] * 0.016;
-            camera.target[2] += front[2] * 0.016;
-        }
-        if (keystate[c.SDL_SCANCODE_S] == 1) {
-            const front = camera.front();
-            camera.position[0] -= front[0] * 0.016;
-            camera.position[2] -= front[2] * 0.016;
-            camera.target[0] -= front[0] * 0.016;
-            camera.target[2] -= front[2] * 0.016;
-        }
-        if (keystate[c.SDL_SCANCODE_D] == 1) {
-            const front = camera.front();
-            const right = Camera.normalizeVec3(Camera.crossVec3(front, camera.up));
-            camera.position[0] += right[0] * 0.016;
-            camera.position[2] += right[2] * 0.016;
-            camera.target[0] += right[0] * 0.016;
-            camera.target[2] += right[2] * 0.016;
-        }
-        if (keystate[c.SDL_SCANCODE_A] == 1) {
-            const front = camera.front();
-            const right = Camera.normalizeVec3(Camera.crossVec3(front, camera.up));
-            camera.position[0] -= right[0] * 0.016;
-            camera.position[2] -= right[2] * 0.016;
-            camera.target[0] -= right[0] * 0.016;
-            camera.target[2] -= right[2] * 0.016;
-        }
+        //if (keystate[c.SDL_SCANCODE_W] == 1) {
+        //    const front = camera.front();
+        //    camera.position[0] += front[0] * 0.016;
+        //    camera.position[2] += front[2] * 0.016;
+        //    camera.target[0] += front[0] * 0.016;
+        //    camera.target[2] += front[2] * 0.016;
+        //}
+        //if (keystate[c.SDL_SCANCODE_S] == 1) {
+        //    const front = camera.front();
+        //    camera.position[0] -= front[0] * 0.016;
+        //    camera.position[2] -= front[2] * 0.016;
+        //    camera.target[0] -= front[0] * 0.016;
+        //    camera.target[2] -= front[2] * 0.016;
+        //}
+        //if (keystate[c.SDL_SCANCODE_D] == 1) {
+        //    const front = camera.front();
+        //    const right = Camera.normalizeVec3(Camera.crossVec3(front, camera.up));
+        //    camera.position[0] += right[0] * 0.016;
+        //    camera.position[2] += right[2] * 0.016;
+        //    camera.target[0] += right[0] * 0.016;
+        //    camera.target[2] += right[2] * 0.016;
+        //}
+        //if (keystate[c.SDL_SCANCODE_A] == 1) {
+        //    const front = camera.front();
+        //    const right = Camera.normalizeVec3(Camera.crossVec3(front, camera.up));
+        //    camera.position[0] -= right[0] * 0.016;
+        //    camera.position[2] -= right[2] * 0.016;
+        //    camera.target[0] -= right[0] * 0.016;
+        //    camera.target[2] -= right[2] * 0.016;
+        //}
 
-        if (keystate[c.SDL_SCANCODE_UP] == 1) {
-            const radius = Camera.distanceBetweenVec3(camera.position, camera.target);
-            //std.log.info("TARGET: {any}", .{camera.target});
-            if (radius > 1.0) {
-                camera.position = Camera.addVec3(
-                    camera.position,
-                    Camera.scaleVec3(camera.front(), 0.026),
-                );
-                if (camera.position[1] > (camera.target[1])) {
-                    camera.position[1] -= 0.003;
-                }
-            }
-        }
-        if (keystate[c.SDL_SCANCODE_DOWN] == 1) {
-            const radius = Camera.distanceBetweenVec3(camera.position, camera.target);
-            //std.log.info("TARGET: {any}", .{camera.target});
-            if (radius < 15.0) {
-                camera.position = Camera.subVec3(
-                    camera.position,
-                    Camera.scaleVec3(camera.front(), 0.026),
-                );
+        //if (keystate[c.SDL_SCANCODE_UP] == 1) {
+        //    const radius = Camera.distanceBetweenVec3(camera.position, camera.target);
+        //    //std.log.info("TARGET: {any}", .{camera.target});
+        //    if (radius > 1.0) {
+        //        camera.position = Camera.addVec3(
+        //            camera.position,
+        //            Camera.scaleVec3(camera.front(), 0.026),
+        //        );
+        //        if (camera.position[1] > (camera.target[1])) {
+        //            camera.position[1] -= 0.003;
+        //        }
+        //    }
+        //}
+        //if (keystate[c.SDL_SCANCODE_DOWN] == 1) {
+        //    const radius = Camera.distanceBetweenVec3(camera.position, camera.target);
+        //    //std.log.info("TARGET: {any}", .{camera.target});
+        //    if (radius < 15.0) {
+        //        camera.position = Camera.subVec3(
+        //            camera.position,
+        //            Camera.scaleVec3(camera.front(), 0.026),
+        //        );
 
-                if (camera.position[1] < (camera.target[1] + 15)) {
-                    camera.position[1] += 0.003;
-                }
-            }
-        }
-        if (keystate[c.SDL_SCANCODE_Q] == 1) {
-            const front = camera.front();
-            const right = Camera.normalizeVec3(Camera.crossVec3(front, camera.up));
-            camera.position[0] -= @cos(right[0]) * 0.0016;
-            camera.position[2] -= @sin(right[2]) * 0.0016;
-        }
-        if (keystate[c.SDL_SCANCODE_E] == 1) {
-            const front = camera.front();
-            const right = Camera.normalizeVec3(Camera.crossVec3(front, camera.up));
-            _ = right; // autofix
-            const radius = Camera.distanceBetweenVec3(camera.position, camera.target);
-            camera.position[0] += radius * @cos(0.013);
-            camera.position[2] += radius * @sin(0.013);
-        }
+        //        if (camera.position[1] < (camera.target[1] + 15)) {
+        //            camera.position[1] += 0.003;
+        //        }
+        //    }
+        //}
+        //if (keystate[c.SDL_SCANCODE_Q] == 1) {
+        //    const front = camera.front();
+        //    const right = Camera.normalizeVec3(Camera.crossVec3(front, camera.up));
+        //    camera.position[0] -= @cos(right[0]) * 0.0016;
+        //    camera.position[2] -= @sin(right[2]) * 0.0016;
+        //}
+        //if (keystate[c.SDL_SCANCODE_E] == 1) {
+        //    const front = camera.front();
+        //    const right = Camera.normalizeVec3(Camera.crossVec3(front, camera.up));
+        //    _ = right; // autofix
+        //    const radius = Camera.distanceBetweenVec3(camera.position, camera.target);
+        //    camera.position[0] += radius * @cos(0.013);
+        //    camera.position[2] += radius * @sin(0.013);
+        //}
 
         var x: i32 = undefined;
         var y: i32 = undefined;
@@ -283,34 +200,17 @@ pub fn run(app: AppDesc) !void {
         //std.log.info("MOUSE: {any}", .{mouse});
         //std.log.info("MOUSE x: {}", .{x});
         //std.log.info("MOUSE y: {}", .{y});
-        camera.recalcViewProj();
-        const model_matrix_t: Camera.mat4 = .{
-            1,                0,                0,                0,
-            0,                1,                0,                0,
-            0,                0,                1,                0,
-            camera.target[0], camera.target[1], camera.target[2], 1,
-        };
         //camera.position[0] += 1;
         //camera.view_matrix = Camera.lookAt(camera.position, camera.target, camera.up);
         if (angle >= 360) {
             angle = 0;
         }
-        camera.rotation = 0;
         angle += 0.0005;
 
-        c.glEnable(c.GL_DEPTH_TEST);
         window.drawBackgroundColor(0.0, 0.3, 0.3);
-        c.glUseProgram(m2.shader.id);
-        m2.shader.setMat4("model", model_matrix_t);
-        m2.shader.setMat4("view", camera.view_matrix);
-        m2.shader.setMat4("projection", camera.projection_matrix);
-        m2.draw();
-
-        c.glUseProgram(m.shader.id);
-        m.shader.setMat4("model", model_matrix);
-        m.shader.setMat4("view", camera.view_matrix);
-        m.shader.setMat4("projection", camera.projection_matrix);
-        m.draw();
+        c.glUseProgram(shd.id);
+        c.glActiveTexture(c.GL_TEXTURE0);
+        c.glBindTexture(c.GL_TEXTURE_2D, texture);
 
         const er = c.glGetError();
         if (er != c.GL_NO_ERROR) {
@@ -318,7 +218,7 @@ pub fn run(app: AppDesc) !void {
         }
 
         if (app.tick) |tick| {
-            _ = tick; // autofix
+            try tick();
             //c.glUseProgram(shd.id);
             //shd.setMat4("model", model_matrix);
             //shd.setMat4("view", camera.view_matrix);
