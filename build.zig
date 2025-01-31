@@ -8,6 +8,7 @@ pub const libOptions = struct {
 fn buildzlib(b: *std.Build, options: libOptions) *std.Build.Step.Compile {
     const zRogue = b.addStaticLibrary(.{
         .name = "zRogue",
+        .root_source_file = b.path("src/root.zig"),
         .optimize = options.optimization,
         .target = options.target,
         .link_libc = true,
@@ -20,6 +21,15 @@ fn buildzlib(b: *std.Build, options: libOptions) *std.Build.Step.Compile {
         .files = &[_][]const u8{"lib/fake.c"},
     });
     zRogue.addIncludePath(b.path("lib/"));
+
+    const extra_docs = b.addInstallDirectory(.{
+        .source_dir = zRogue.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "docs"
+    });
+
+    const docs_step = b.step("docs", "Install docs into zig-out/docs");
+    docs_step.dependOn(&extra_docs.step);
 
     return zRogue;
 }
@@ -69,9 +79,11 @@ pub fn build(b: *std.Build) void {
         .optimization = optimize,
     });
 
+
     const zrogue_module = b.addModule("zRogue", .{ .root_source_file = b.path("src/root.zig") });
     zrogue_module.linkLibrary(lib);
     zrogue_module.addIncludePath(b.path("lib/"));
+
 
     const exe = b.addExecutable(.{
         .name = "zRogue",

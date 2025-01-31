@@ -99,7 +99,7 @@ fn isSymmetric(scanline: *Scanline, tile: Tile) bool {
 /// - pub fn vec2ToIndex(self: *Self, vec: Vec2) u32;
 /// This function will populate the visible_tiles array
 /// with true for visible tiles, and false for non-visible
-pub fn FieldOfView(comptime T: type, map: *anyopaque, player_pos: Vec2, range: i32) !void {
+pub fn fieldOfView(comptime T: type, map: *anyopaque, player_pos: Vec2, range: i32) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();

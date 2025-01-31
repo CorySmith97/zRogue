@@ -1,1 +1,1 @@
-pub const FieldOfView = @import("algorithms/shadowcast.zig").FieldOfView;
+pub const FieldOfView = @import("algorithms/shadowcast.zig").fieldOfView;

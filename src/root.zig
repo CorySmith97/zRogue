@@ -63,7 +63,7 @@ pub fn run(app: AppDesc) !void {
         break :blk seed;
     });
 
-    const embedded_bmp = @embedFile("assets/vga8x16.bmp");
+    const embedded_bmp = @embedFile("assets/VGA8x16.bmp");
 
     const bm = try BMP.create(embedded_bmp);
     //try bm.flipVertically(allocator);
@@ -197,17 +197,9 @@ pub fn run(app: AppDesc) !void {
         var y: i32 = undefined;
         const mouse = c.SDL_GetMouseState(&x, &y);
         _ = mouse; // autofix
-        //std.log.info("MOUSE: {any}", .{mouse});
-        //std.log.info("MOUSE x: {}", .{x});
-        //std.log.info("MOUSE y: {}", .{y});
-        //camera.position[0] += 1;
-        //camera.view_matrix = Camera.lookAt(camera.position, camera.target, camera.up);
-        if (angle >= 360) {
-            angle = 0;
-        }
         angle += 0.0005;
 
-        window.drawBackgroundColor(0.0, 0.3, 0.3);
+        window.drawBackgroundColor(0.0, 0.0, 0.0);
         c.glUseProgram(shd.id);
         c.glActiveTexture(c.GL_TEXTURE0);
         c.glBindTexture(c.GL_TEXTURE_2D, texture);
