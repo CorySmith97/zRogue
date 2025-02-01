@@ -69,6 +69,7 @@ pub fn build(b: *std.Build) void {
         "draw-sprite",
         "draw-map",
         "network",
+        "sprite-viewer",
     };
     // Uncomment these as needed
     // "user-input",

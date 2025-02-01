@@ -153,6 +153,7 @@ fn tick() !void {
         state.player.char,
     );
     s.print(0, 0, s.WHITE, s.BLACK, [_]u8{196} ** 10 ++ ">LOG<" ++ [_]u8{196} ** 65);
+    s.drawVertLine(10, 0, 40, s.PASTEL_RED, s.WHITE);
 }
 
 pub fn input(event: *zRogue.Event) !void {

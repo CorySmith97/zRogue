@@ -118,23 +118,6 @@ fn makeVao(points: [4][10]f32) Buffers {
     };
 }
 
-const Self = @This();
-sprite_width: i32,
-sprite_height: i32,
-tex_width: i32,
-tex_height: i32,
-tex: i32,
-
-pub fn init(t: i32, tW: i32, tH: i32, sW: i32, sH: i32) Self {
-    return .{
-        .sprite_width = sW,
-        .sprite_height = sH,
-        .tex_width = tW,
-        .tex_height = tH,
-        .tex = t,
-    };
-}
-
 /// Draws a simple sprite at a given location. The cells are on a 80x50 grid.
 pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) void {
     const ascii_tex_pos_x = ascii_ch % 16;
@@ -220,6 +203,40 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
     c.glDrawElements(c.GL_TRIANGLES, 6, c.GL_UNSIGNED_INT, null);
     buff.deinit();
 }
+
+// This draw with the start_y being the lower of the two values
+pub fn drawVertLine(x: f32, start_y: f32, end_y: f32, fg: Color, bg: Color) void {
+    const su: usize = @intFromFloat(start_y);
+    const eu: usize = @intFromFloat(end_y);
+    for (su..eu) |y| {
+        print(x, @floatFromInt(y), fg, bg, &[_]u8{179});
+    }
+}
+
+pub fn drawHorzLine(y: f32, start_x: f32, end_x: f32, fg: Color, bg: Color) void {
+    const su: usize = @intFromFloat(start_x);
+    const eu: usize = @intFromFloat(end_x);
+    for (su..eu) |x| {
+        print(@floatFromInt(x), y, fg, bg, &[_]u8{196});
+    }
+}
+
+pub fn drawBox(
+    x_min: f32,
+    x_max: f32,
+    y_min: f32,
+    y_max: f32,
+    fg: Color,
+    bg: Color,
+) void {
+    _ = x_min;
+    _ = x_max;
+    _ = y_min;
+    _ = y_max;
+    _ = bg;
+    _ = fg;
+}
+
 
 pub fn drawSprite3d(
     cell_x: i32,
