@@ -16,6 +16,7 @@ pub fn initFromBmp(b: bmp) Self {
 }
 /// Moves the image to an opengl texture and passes it to the GPU
 pub fn imgToTexture(image: *Self) !c.GLuint {
+    std.debug.assert(image.data.len != 0);
     var texture: u32 = undefined;
     c.glGenTextures(1, &texture);
     c.glBindTexture(c.GL_TEXTURE_2D, texture);

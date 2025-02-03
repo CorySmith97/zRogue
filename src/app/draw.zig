@@ -1,11 +1,21 @@
 const std = @import("std");
 const c = @import("c.zig");
 
+const SpriteConstants = struct {
+    h_tile_size: f32 = 80,
+    v_tile_size: f32 = 50,
+    screen_width: i32 = 1200,
+    screen_height: i32 = 800,
+};
+
+pub var sprite_constants: SpriteConstants = .{};
+
 /// simple RGB struct. Colors are between 0.0 and 1.0.
 pub const Color = struct {
     r: f32,
     g: f32,
     b: f32,
+    a: f32 = 1.0,
 };
 
 pub const AnimationFrame = struct {
@@ -65,8 +75,9 @@ pub const PASTEL_PURPLE = Color{ .r = 0.9, .g = 0.575, .b = 0.9 };
 pub const PASTEL_BLUE = Color{ .r = 0.575, .g = 0.77, .b = 0.9 };
 pub const PASTEL_YELLOW = Color{ .r = 0.9, .g = 0.9, .b = 0.575 };
 pub const PASTEL_ORANGE = Color{ .r = 0.9, .g = 0.75, .b = 0.575 };
+pub const TRANSPARENT = Color{ .r = 0, .g = 0, .b = 0, .a = 0 };
 
-fn makeVao(points: [4][10]f32) Buffers {
+fn makeVao(points: [4][12]f32) Buffers {
     const indices = [_][3]u32{
         [_]u32{ 0, 1, 2 },
         [_]u32{ 0, 2, 3 },
@@ -100,7 +111,7 @@ fn makeVao(points: [4][10]f32) Buffers {
         2,
         c.GL_FLOAT,
         c.GL_FALSE,
-        10 * @sizeOf(f32),
+        12 * @sizeOf(f32),
         c_offset,
     );
     c.glEnableVertexAttribArray(0);
@@ -108,32 +119,32 @@ fn makeVao(points: [4][10]f32) Buffers {
     const fg_offset = @as(?*anyopaque, @ptrFromInt(2 * @sizeOf(f32)));
     c.glVertexAttribPointer(
         1,
-        3,
+        4,
         c.GL_FLOAT,
         c.GL_FALSE,
-        10 * @sizeOf(f32),
+        12 * @sizeOf(f32),
         fg_offset,
     );
     c.glEnableVertexAttribArray(1);
 
-    const bg_offset = @as(?*anyopaque, @ptrFromInt(5 * @sizeOf(f32)));
+    const bg_offset = @as(?*anyopaque, @ptrFromInt(6 * @sizeOf(f32)));
     c.glVertexAttribPointer(
         2,
-        3,
+        4,
         c.GL_FLOAT,
         c.GL_FALSE,
-        10 * @sizeOf(f32),
+        12 * @sizeOf(f32),
         bg_offset,
     );
     c.glEnableVertexAttribArray(2);
 
-    const tex_offset = @as(?*anyopaque, @ptrFromInt(8 * @sizeOf(f32)));
+    const tex_offset = @as(?*anyopaque, @ptrFromInt(10 * @sizeOf(f32)));
     c.glVertexAttribPointer(
         3,
         2,
         c.GL_FLOAT,
         c.GL_FALSE,
-        10 * @sizeOf(f32),
+        12 * @sizeOf(f32),
         tex_offset,
     );
     c.glEnableVertexAttribArray(3);
@@ -159,14 +170,14 @@ pub fn drawSpriteC(
 
     const x = @as(f32, @floatFromInt(ascii_tex_pos_x));
     const y = 15 - @as(f32, @floatFromInt(ascii_tex_pos_y));
-    const pos_x = 0.025 * cell_x;
-    const pos_y = 0.04 * (-cell_y);
+    const pos_x = (2 / sprite_constants.h_tile_size) * cell_x;
+    const pos_y = (2 / sprite_constants.v_tile_size) * (-cell_y);
     const tex_x_offset = 1.0 / 16.0;
     const tex_y_offset = 1.0 / 16.0;
-    const cell_size_x = 1.0 / 80.0 * x_size;
-    const cell_size_y = 1.0 / 50.0 * y_size;
+    const cell_size_x = 1.0 / sprite_constants.h_tile_size * x_size;
+    const cell_size_y = 1.0 / sprite_constants.v_tile_size * y_size;
 
-    const vertices = [_][10]f32{
+    const vertices = [_][12]f32{
         [_]f32{
             // position
             cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
@@ -175,10 +186,12 @@ pub fn drawSpriteC(
             fg.r,
             fg.g,
             fg.b,
+            fg.a,
             // bg
             bg.r,
             bg.g,
             bg.b,
+            bg.a,
             // texcoord
             tex_x_offset * (x + 1),
             1.0 - tex_y_offset * (y + 1),
@@ -191,10 +204,12 @@ pub fn drawSpriteC(
             fg.r,
             fg.g,
             fg.b,
+            fg.a,
             // bg
             bg.r,
             bg.g,
             bg.b,
+            bg.a,
             // texcoord
             tex_x_offset * (x + 1),
             1.0 - tex_y_offset * y,
@@ -207,10 +222,12 @@ pub fn drawSpriteC(
             fg.r,
             fg.g,
             fg.b,
+            fg.a,
             // bg
             bg.r,
             bg.g,
             bg.b,
+            bg.a,
             // texcoord
             tex_x_offset * x,
             1.0 - tex_y_offset * y,
@@ -223,10 +240,12 @@ pub fn drawSpriteC(
             fg.r,
             fg.g,
             fg.b,
+            fg.a,
             // bg
             bg.r,
             bg.g,
             bg.b,
+            bg.a,
             // texcoord
             tex_x_offset * x,
             1.0 - tex_y_offset * (y + 1),
@@ -245,14 +264,14 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
 
     const x = @as(f32, @floatFromInt(ascii_tex_pos_x));
     const y = 15 - @as(f32, @floatFromInt(ascii_tex_pos_y));
-    const pos_x = 0.025 * cell_x;
-    const pos_y = 0.04 * (-cell_y);
+    const pos_x = (2 / sprite_constants.h_tile_size) * cell_x;
+    const pos_y = (2 / sprite_constants.v_tile_size) * (-cell_y);
     const tex_x_offset = 1.0 / 16.0;
     const tex_y_offset = 1.0 / 16.0;
-    const cell_size_x = 1.0 / 80.0;
-    const cell_size_y = 1.0 / 50.0;
+    const cell_size_x = 1.0 / sprite_constants.h_tile_size;
+    const cell_size_y = 1.0 / sprite_constants.v_tile_size;
 
-    const vertices = [_][10]f32{
+    const vertices = [_][12]f32{
         [_]f32{
             // position
             cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
@@ -261,10 +280,12 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             fg.r,
             fg.g,
             fg.b,
+            fg.a,
             // bg
             bg.r,
             bg.g,
             bg.b,
+            bg.a,
             // texcoord
             tex_x_offset * (x + 1),
             1.0 - tex_y_offset * (y + 1),
@@ -277,10 +298,12 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             fg.r,
             fg.g,
             fg.b,
+            fg.a,
             // bg
             bg.r,
             bg.g,
             bg.b,
+            bg.a,
             // texcoord
             tex_x_offset * (x + 1),
             1.0 - tex_y_offset * y,
@@ -293,10 +316,12 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             fg.r,
             fg.g,
             fg.b,
+            fg.a,
             // bg
             bg.r,
             bg.g,
             bg.b,
+            bg.a,
             // texcoord
             tex_x_offset * x,
             1.0 - tex_y_offset * y,
@@ -309,10 +334,12 @@ pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) 
             fg.r,
             fg.g,
             fg.b,
+            fg.a,
             // bg
             bg.r,
             bg.g,
             bg.b,
+            bg.a,
             // texcoord
             tex_x_offset * x,
             1.0 - tex_y_offset * (y + 1),
