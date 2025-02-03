@@ -8,6 +8,32 @@ pub const Color = struct {
     b: f32,
 };
 
+pub const AnimationFrame = struct {
+    x: f32,
+    y: f32,
+    fg: Color,
+    bg: Color,
+    char: u8,
+};
+
+pub const Animation = struct {
+    frames: []AnimationFrame,
+    cur_frame: u32 = 0,
+    font_size: f32 = 1,
+    frame_speed: u32,
+    frame_count: u32,
+    pub fn draw(self: *Animation) void {
+        if (self.frame_count == self.frame_speed) {
+            self.frame_count = 0;
+            self.cur_frame = (self.cur_frame + 1) % @as(u32, @intCast(self.frames.len));
+        } else {
+            self.frame_count += 1;
+        }
+        const frame = self.frames[@intCast(self.cur_frame)];
+        drawSpriteC(frame.x, frame.y, frame.fg, frame.bg, frame.char, self.font_size, self.font_size);
+    }
+};
+
 const Buffers = struct {
     vao: u32,
     vbo: u32,
@@ -116,6 +142,99 @@ fn makeVao(points: [4][10]f32) Buffers {
         .ebo = ebo,
         .vbo = vbo,
     };
+}
+
+pub fn drawSpriteC(
+    cell_x: f32,
+    cell_y: f32,
+    fg: Color,
+    bg: Color,
+    ascii_ch: u8,
+    x_size: f32,
+    y_size: f32,
+) void {
+    const ascii_tex_pos_x = ascii_ch % 16;
+    const ascii_tex_pos_y = ascii_ch / 16;
+
+    const x = @as(f32, @floatFromInt(ascii_tex_pos_x));
+    const y = 15 - @as(f32, @floatFromInt(ascii_tex_pos_y));
+    const pos_x = 0.025 * cell_x;
+    const pos_y = 0.04 * (-cell_y);
+    const tex_x_offset = 1.0 / 16.0;
+    const tex_y_offset = 1.0 / 16.0;
+    const cell_size_x = 1.0 / 80.0 * x_size;
+    const cell_size_y = 1.0 / 50.0 * y_size;
+
+    const vertices = [_][10]f32{
+        [_]f32{
+            // position
+            cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
+            cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
+            // fg
+            fg.r,
+            fg.g,
+            fg.b,
+            // bg
+            bg.r,
+            bg.g,
+            bg.b,
+            // texcoord
+            tex_x_offset * (x + 1),
+            1.0 - tex_y_offset * (y + 1),
+        },
+        [_]f32{
+            // position
+            cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
+            cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
+            // fg
+            fg.r,
+            fg.g,
+            fg.b,
+            // bg
+            bg.r,
+            bg.g,
+            bg.b,
+            // texcoord
+            tex_x_offset * (x + 1),
+            1.0 - tex_y_offset * y,
+        },
+        [_]f32{
+            // position
+            cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
+            cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
+            // fg
+            fg.r,
+            fg.g,
+            fg.b,
+            // bg
+            bg.r,
+            bg.g,
+            bg.b,
+            // texcoord
+            tex_x_offset * x,
+            1.0 - tex_y_offset * y,
+        },
+        [_]f32{
+            // position
+            cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
+            cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
+            // fg
+            fg.r,
+            fg.g,
+            fg.b,
+            // bg
+            bg.r,
+            bg.g,
+            bg.b,
+            // texcoord
+            tex_x_offset * x,
+            1.0 - tex_y_offset * (y + 1),
+        },
+    };
+    var buff = makeVao(vertices);
+    c.glBindVertexArray(@intCast(buff.vao));
+    c.glDrawElements(c.GL_TRIANGLES, 6, c.GL_UNSIGNED_INT, null);
+    buff.deinit();
 }
 
 /// Draws a simple sprite at a given location. The cells are on a 80x50 grid.
@@ -229,14 +348,15 @@ pub fn drawBox(
     fg: Color,
     bg: Color,
 ) void {
-    _ = x_min;
-    _ = x_max;
-    _ = y_min;
-    _ = y_max;
-    _ = bg;
-    _ = fg;
+    drawHorzLine(y_min, x_min + 1, x_max, fg, bg);
+    drawHorzLine(y_max, x_min + 1, x_max, fg, bg);
+    drawVertLine(x_min, y_min + 1, y_max, fg, bg);
+    drawVertLine(x_max, y_min + 1, y_max, fg, bg);
+    drawSprite(x_min, y_min, fg, bg, 218);
+    drawSprite(x_max, y_max, fg, bg, 217);
+    drawSprite(x_min, y_max, fg, bg, 192);
+    drawSprite(x_max, y_min, fg, bg, 191);
 }
-
 
 pub fn drawSprite3d(
     cell_x: i32,
@@ -342,6 +462,21 @@ pub fn print(cell_x: f32, cell_y: f32, fg: Color, bg: Color, string: []const u8)
     for (string) |char| {
         drawSprite(x_position, cell_y, fg, bg, char);
         x_position += 1;
+    }
+}
+
+pub fn printC(
+    cell_x: f32,
+    cell_y: f32,
+    fg: Color,
+    bg: Color,
+    string: []const u8,
+    font_size: f32,
+) void {
+    var x_position = cell_x;
+    for (string) |char| {
+        drawSpriteC(x_position, cell_y, fg, bg, char, font_size, font_size);
+        x_position += 1 * font_size;
     }
 }
 

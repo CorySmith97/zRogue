@@ -1,5 +1,11 @@
 const std = @import("std");
 
+pub fn ServerTcp(comptime T: type, addr: std.net.Address, ptr_to_state: *T) type {
+    return struct {
+        addr: addr,
+        state: ptr_to_state,
+    };
+}
 const Self = @This();
 addr: std.net.Address,
 

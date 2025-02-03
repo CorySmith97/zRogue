@@ -5,7 +5,7 @@ pub const libOptions = struct {
     optimization: std.builtin.OptimizeMode,
 };
 
-fn buildzlib(b: *std.Build, options: libOptions) *std.Build.Step.Compile {
+fn buildzlib(b: *std.Build, options: libOptions) *std.Build.Module {
     const zRogue = b.addStaticLibrary(.{
         .name = "zRogue",
         .root_source_file = b.path("src/root.zig"),
@@ -22,16 +22,19 @@ fn buildzlib(b: *std.Build, options: libOptions) *std.Build.Step.Compile {
     });
     zRogue.addIncludePath(b.path("lib/"));
 
-    const extra_docs = b.addInstallDirectory(.{
-        .source_dir = zRogue.getEmittedDocs(),
-        .install_dir = .prefix,
-        .install_subdir = "docs"
-    });
+    b.installArtifact(zRogue);
+
+    const extra_docs = b.addInstallDirectory(.{ .source_dir = zRogue.getEmittedDocs(), .install_dir = .prefix, .install_subdir = "docs" });
 
     const docs_step = b.step("docs", "Install docs into zig-out/docs");
     docs_step.dependOn(&extra_docs.step);
 
-    return zRogue;
+    const zrogue_module = b.addModule("zRogue", .{ .root_source_file = b.path("src/root.zig") });
+    zrogue_module.linkLibrary(zRogue);
+    zrogue_module.addIncludePath(b.path("lib/"));
+    zrogue_module.addIncludePath(b.path("src/"));
+
+    return zrogue_module;
 }
 
 pub const ExampleOptions = struct {
@@ -80,19 +83,13 @@ pub fn build(b: *std.Build) void {
         .optimization = optimize,
     });
 
-
-    const zrogue_module = b.addModule("zRogue", .{ .root_source_file = b.path("src/root.zig") });
-    zrogue_module.linkLibrary(lib);
-    zrogue_module.addIncludePath(b.path("lib/"));
-
-
     const exe = b.addExecutable(.{
         .name = "zRogue",
         .root_source_file = b.path("testBuild/main.zig"),
         .target = target,
         .optimize = optimize,
     });
-    exe.root_module.addImport("zRogue", zrogue_module);
+    exe.root_module.addImport("zRogue", lib);
 
     b.installArtifact(exe);
 
@@ -108,7 +105,7 @@ pub fn build(b: *std.Build) void {
     // Run examples
     inline for (examples) |ex| {
         try buildExample(b, ex, .{
-            .mod_zRogue = zrogue_module,
+            .mod_zRogue = lib,
             .target = target,
             .optimize = optimize,
         });

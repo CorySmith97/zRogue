@@ -57,6 +57,8 @@ pub var rng: std.Random.Xoshiro256 = undefined;
 /// }
 /// cleanup()
 pub fn run(app: AppDesc) !void {
+    const width: i32 = 1200;
+    const height: i32 = 800;
     rng = std.Random.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));
@@ -69,7 +71,7 @@ pub fn run(app: AppDesc) !void {
     //try bm.flipVertically(allocator);
 
     var img = Image.initFromBmp(bm);
-    var window = Window.init(app.title, 1200, 800);
+    var window = Window.init(app.title, width, height);
     window.createWindow();
     defer window.deinit();
 
@@ -93,15 +95,13 @@ pub fn run(app: AppDesc) !void {
     }
     log.info("[LOG] LibEpoxy Version: {}\n", .{c.epoxy_gl_version()});
     var a: u32 = 0;
-    var b: u32 = 0;
-    var delta: f64 = 0;
 
     var angle: f32 = 0;
 
     var quit = false;
     while (!quit) {
+        var timer = try std.time.Timer.start();
         a = c.SDL_GetTicks();
-        delta = @as(f64, @floatFromInt(a - b));
         var event: c.SDL_Event = undefined;
         var ev: Event = .{
             .ev = &event,
@@ -217,8 +217,17 @@ pub fn run(app: AppDesc) !void {
             //shd.setMat4("projection", camera.projection_matrix);
             //try tick();
         }
+        const allocator = std.heap.page_allocator;
+        const sdl_delta = c.SDL_GetTicks() - a;
+        if (sdl_delta < 16) {
+            c.SDL_Delay(16 - sdl_delta);
+        }
+        const frame_delta = timer.read();
+        const fs = @as(f32, @floatFromInt(1_000_000_000 / frame_delta));
+        const fps = try std.fmt.allocPrint(allocator, "FPS: {d:.2}", .{fs});
+        Sprite.print(0, 1, Sprite.WHITE, Sprite.BLACK, fps);
+        allocator.free(fps);
         window.swapWindow();
-        b = a;
     }
     if (app.cleanup) |cleanup| {
         try cleanup();
