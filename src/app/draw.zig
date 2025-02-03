@@ -9,8 +9,6 @@ pub const Color = struct {
 };
 
 pub const AnimationFrame = struct {
-    x: f32,
-    y: f32,
     fg: Color,
     bg: Color,
     char: u8,
@@ -22,6 +20,9 @@ pub const Animation = struct {
     font_size: f32 = 1,
     frame_speed: u32,
     frame_count: u32,
+    x: f32,
+    y: f32,
+
     pub fn draw(self: *Animation) void {
         if (self.frame_count == self.frame_speed) {
             self.frame_count = 0;
@@ -30,7 +31,7 @@ pub const Animation = struct {
             self.frame_count += 1;
         }
         const frame = self.frames[@intCast(self.cur_frame)];
-        drawSpriteC(frame.x, frame.y, frame.fg, frame.bg, frame.char, self.font_size, self.font_size);
+        drawSpriteC(self.x, self.y, frame.fg, frame.bg, frame.char, self.font_size, self.font_size);
     }
 };
 

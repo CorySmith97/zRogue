@@ -258,6 +258,19 @@ pub const Event = struct {
     }
 };
 
+pub const Vec2 = struct {
+    x: f32,
+    y: f32,
+};
+
+pub fn getMousePos() Vec2 {
+    var x: c_int = 0;
+    var y: c_int = 0;
+    _ = c.SDL_GetMouseState(&x, &y);
+
+    return .{ .x = @floatFromInt(x), .y = @floatFromInt(y) };
+}
+
 const KEYTYPE = c.SDL_Event.key.keysym.sym;
 pub const KEY_A = c.SDLK_a;
 pub const KEY_B = c.SDLK_b;

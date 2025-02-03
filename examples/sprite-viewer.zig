@@ -29,36 +29,14 @@ var animation_h = s.Animation{
     .frame_count = 0,
     .frame_speed = 30,
     .font_size = 2,
+    .x = 10,
+    .y = 40,
     .frames = @constCast(
         &[_]s.AnimationFrame{
-            .{
-                .x = 10,
-                .y = 40,
-                .fg = s.GRAY,
-                .bg = s.BLACK,
-                .char = 'h',
-            },
-            .{
-                .x = 10,
-                .y = 40,
-                .fg = s.GRAY,
-                .bg = s.BLACK,
-                .char = 'h',
-            },
-            .{
-                .x = 10,
-                .y = 40,
-                .fg = s.WHITE,
-                .bg = s.BLACK,
-                .char = 'h',
-            },
-            .{
-                .x = 10,
-                .y = 40,
-                .fg = s.WHITE,
-                .bg = s.BLACK,
-                .char = 'h',
-            },
+            .{ .fg = s.GRAY, .bg = s.BLACK, .char = 'h' },
+            .{ .fg = s.GRAY, .bg = s.BLACK, .char = 'h' },
+            .{ .fg = s.WHITE, .bg = s.BLACK, .char = 'h' },
+            .{ .fg = s.WHITE, .bg = s.BLACK, .char = 'h' },
         },
     ),
 };
@@ -66,36 +44,14 @@ var animation_e = s.Animation{
     .frame_count = 0,
     .frame_speed = 30,
     .font_size = 2,
+    .x = 13,
+    .y = 40,
     .frames = @constCast(
         &[_]s.AnimationFrame{
-            .{
-                .x = 13,
-                .y = 40,
-                .fg = s.WHITE,
-                .bg = s.BLACK,
-                .char = 'e',
-            },
-            .{
-                .x = 13,
-                .y = 40,
-                .fg = s.GRAY,
-                .bg = s.BLACK,
-                .char = 'e',
-            },
-            .{
-                .x = 13,
-                .y = 40,
-                .fg = s.GRAY,
-                .bg = s.BLACK,
-                .char = 'e',
-            },
-            .{
-                .x = 13,
-                .y = 40,
-                .fg = s.WHITE,
-                .bg = s.BLACK,
-                .char = 'e',
-            },
+            .{ .fg = s.WHITE, .bg = s.BLACK, .char = 'e' },
+            .{ .fg = s.GRAY, .bg = s.BLACK, .char = 'e' },
+            .{ .fg = s.GRAY, .bg = s.BLACK, .char = 'e' },
+            .{ .fg = s.WHITE, .bg = s.BLACK, .char = 'e' },
         },
     ),
 };
@@ -103,36 +59,14 @@ var animation_y = s.Animation{
     .frame_count = 0,
     .frame_speed = 30,
     .font_size = 2,
+    .x = 16,
+    .y = 40,
     .frames = @constCast(
         &[_]s.AnimationFrame{
-            .{
-                .x = 16,
-                .y = 40,
-                .fg = s.WHITE,
-                .bg = s.BLACK,
-                .char = 'y',
-            },
-            .{
-                .x = 16,
-                .y = 40,
-                .fg = s.WHITE,
-                .bg = s.BLACK,
-                .char = 'y',
-            },
-            .{
-                .x = 16,
-                .y = 40,
-                .fg = s.GRAY,
-                .bg = s.BLACK,
-                .char = 'y',
-            },
-            .{
-                .x = 16,
-                .y = 40,
-                .fg = s.GRAY,
-                .bg = s.BLACK,
-                .char = 'y',
-            },
+            .{ .fg = s.WHITE, .bg = s.BLACK, .char = 'y' },
+            .{ .fg = s.WHITE, .bg = s.BLACK, .char = 'y' },
+            .{ .fg = s.GRAY, .bg = s.BLACK, .char = 'y' },
+            .{ .fg = s.GRAY, .bg = s.BLACK, .char = 'y' },
         },
     ),
 };
@@ -146,6 +80,7 @@ pub fn main() !void {
 }
 
 pub fn tick() !void {
+    const mouse_pos = zRogue.getMousePos();
     var buf: [100]u8 = undefined;
     const string = try std.fmt.bufPrint(&buf, "sprite count: {d}", .{sprite_counter});
 
@@ -166,7 +101,7 @@ pub fn tick() !void {
     s.drawBox(6, 33, 22, 26, s.PASTEL_PINK, s.BLACK);
 
     // Selected Color
-    s.printC(7, 28, s.WHITE, s.BLACK, colors[selected_color].name, 2);
+    s.printC(7, 28, colors[selected_color].color, s.BLACK, colors[selected_color].name, 2);
     s.drawBox(6, 33, 27, 31, s.PASTEL_PINK, s.BLACK);
 
     s.drawBox(40, 74, 10, 44, s.PASTEL_PINK, s.BLACK);
@@ -183,6 +118,14 @@ pub fn tick() !void {
     animation_y.draw();
 
     s.printC(30, 5, s.PASTEL_GREEN, s.BLACK, "Sprite Viewer", 2);
+
+    s.drawSprite(
+        @floor(mouse_pos.x * 80 / 1200),
+        @floor(mouse_pos.y * 50 / 800),
+        s.YELLOW,
+        s.PASTEL_PINK,
+        ' ',
+    );
 }
 
 pub fn events(event: *zRogue.Event) !void {
