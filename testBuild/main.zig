@@ -96,20 +96,24 @@ pub const State = struct {
 pub var state: State = undefined;
 var m: Map = undefined;
 var gpa: std.heap.GeneralPurposeAllocator(.{}) = undefined;
+var spritesheets: std.StringHashMap(zRogue.Texture) = undefined;
 
 fn init() !void {
     gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     var player: Player = .{
         .fg = s.YELLOW,
-        .bg = s.BLACK,
-        .char = '@',
+        .bg = s.TRANSPARENT,
+        .char = 224,
         .pos = undefined,
         .view = .{
             .visible_tiles = std.ArrayList(Vec2).init(allocator),
             .range = 8,
         },
     };
+    spritesheets = try zRogue.loadSpritesheets(allocator, @constCast(
+        &[_][]const u8{ "src/assets/VGA8x16.bmp", "src/assets/roguelike.bmp" },
+    ));
 
     m = try Map.newMapWithRooms(allocator, &player);
 
@@ -127,7 +131,7 @@ fn init() !void {
             .id = @intCast(i),
             .pos = center,
             .fg = s.PASTEL_RED,
-            .bg = s.BLACK,
+            .bg = s.TRANSPARENT,
             .char = 'g',
         });
     }
@@ -135,6 +139,7 @@ fn init() !void {
 }
 
 fn tick() !void {
+    try zRogue.setActiveSpritesheet(&spritesheets, "src/assets/VGA8x16.bmp");
     state.drawMap();
     for (state.monsters.items) |monster| {
         const idx = state.map.vec2ToIndex(monster.pos);
@@ -145,6 +150,8 @@ fn tick() !void {
             }
         }
     }
+    s.print(0, 0, s.WHITE, s.BLACK, [_]u8{196} ** 10 ++ ">LOG<" ++ [_]u8{196} ** 65);
+    try zRogue.setActiveSpritesheet(&spritesheets, "src/assets/roguelike_1.bmp");
     s.drawSprite(
         state.player.pos.x,
         state.player.pos.y,
@@ -152,33 +159,32 @@ fn tick() !void {
         state.player.bg,
         state.player.char,
     );
-    s.print(0, 0, s.WHITE, s.BLACK, [_]u8{196} ** 10 ++ ">LOG<" ++ [_]u8{196} ** 65);
-    s.drawVertLine(10, 0, 40, s.PASTEL_RED, s.WHITE);
 }
 
 pub fn input(event: *zRogue.Event) !void {
-    if (event.isKeyDown(zRogue.KEY_A)) {
+    if (event.isKeyDown(zRogue.Keys.KEY_A)) {
         state.tryToMove(-1, 0);
         try state.fov();
     }
-    if (event.isKeyDown(zRogue.KEY_D)) {
+    if (event.isKeyDown(zRogue.Keys.KEY_D)) {
         state.tryToMove(1, 0);
         try state.fov();
     }
-    if (event.isKeyDown(zRogue.KEY_W)) {
+    if (event.isKeyDown(zRogue.Keys.KEY_W)) {
         state.tryToMove(0, -1);
         try state.fov();
     }
-    if (event.isKeyDown(zRogue.KEY_S)) {
+    if (event.isKeyDown(zRogue.Keys.KEY_S)) {
         state.tryToMove(0, 1);
         try state.fov();
     }
-    if (event.isKeyDown(zRogue.KEY_Escape)) {
+    if (event.isKeyDown(zRogue.Keys.KEY_Escape)) {
         event.windowShouldClose(true);
     }
 }
 
 pub fn cleanup() !void {
+    spritesheets.deinit();
     m.tiles.deinit();
     m.rooms.deinit();
     m.visible_tiles.deinit();

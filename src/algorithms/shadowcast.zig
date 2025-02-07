@@ -49,9 +49,10 @@ const Scanline = struct {
             .end_slope = end_slope,
         };
     }
-    fn tiles(self: *Scanline) ![]Tile {
-        var allocator = std.heap.page_allocator;
-
+    fn tiles(
+        self: *Scanline,
+        allocator: std.mem.Allocator,
+    ) ![]Tile {
         const start = roundTiesUp(i32tof32(self.depth) * self.start_slope);
         const end = roundTiesDown(i32tof32(self.depth) * self.end_slope);
 
@@ -137,8 +138,8 @@ pub fn fieldOfView(comptime T: type, map: *anyopaque, player_pos: Vec2, range: i
                 continue;
             }
 
-            const tiles = try sl.tiles();
-            defer std.heap.page_allocator.free(tiles);
+            const tiles = try sl.tiles(allocator);
+            defer allocator.free(tiles);
             for (tiles) |tile| {
                 const transformed_quad = quad.transform(tile);
                 const idx = self.*.vec2ToIndex(transformed_quad);

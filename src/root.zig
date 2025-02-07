@@ -28,6 +28,120 @@ pub const Texture = c.GLuint;
 const std = @import("std");
 const log = std.log;
 
+const SpriteSheetInfo = struct {
+    spritesheet_name: []const u8,
+    sprite_height: i32,
+    sprite_width: i32,
+};
+
+const RootState = struct {
+    allocator: std.mem.Allocator,
+    sprite_contants: Sprite.SpriteConstants,
+    selected_spritesheet: u32,
+    spritesheets: std.StringHashMap(Texture),
+    projection: Camera.mat4,
+
+    fn initRootState(self: *RootState, spritesheet_info: []const SpriteSheetInfo) !void {
+        const allocator = std.heap.page_allocator;
+        self.* = .{
+            .allocator = allocator,
+            .sprite_contants = .{},
+            .spritesheets = std.StringHashMap(Texture).init(allocator),
+            .selected_spritesheet = 0,
+            .projection = Camera.ortho(
+                0,
+                1200,
+                800,
+                0,
+                0.1,
+                1.0,
+            ),
+        };
+
+        var dir = try std.fs.cwd().openDir("src/assets", .{ .iterate = true });
+        for (spritesheet_info) |ssi| {
+            var texture_array: Texture = undefined;
+            c.glGenTextures(1, &texture_array);
+            c.glBindTexture(c.GL_TEXTURE_2D_ARRAY, texture_array);
+            const bind_err = c.glGetError();
+            if (bind_err != c.GL_NO_ERROR) {
+                std.log.err("Texture binding error: {}", .{bind_err});
+            }
+            var f = try dir.openFile(ssi.spritesheet_name, .{});
+            defer f.close();
+            const embedded_file = try f.readToEndAlloc(allocator, 10_000_000_000);
+            defer allocator.free(embedded_file);
+            const bm = try BMP.create(embedded_file);
+            const layers = (@divTrunc(@as(i32, @intCast(bm.width)), ssi.sprite_width)) * (@divTrunc(@as(i32, @intCast(bm.height)), ssi.sprite_height)) + 1;
+            c.glPixelStorei(c.GL_UNPACK_ALIGNMENT, 1);
+            c.glTexParameteri(c.GL_TEXTURE_2D_ARRAY, c.GL_TEXTURE_MIN_FILTER, c.GL_LINEAR);
+            c.glTexParameteri(c.GL_TEXTURE_2D_ARRAY, c.GL_TEXTURE_MAG_FILTER, c.GL_LINEAR);
+            c.glTexParameteri(c.GL_TEXTURE_2D_ARRAY, c.GL_TEXTURE_WRAP_S, c.GL_CLAMP_TO_EDGE);
+            c.glTexParameteri(c.GL_TEXTURE_2D_ARRAY, c.GL_TEXTURE_WRAP_T, c.GL_CLAMP_TO_EDGE);
+            c.glTexParameteri(c.GL_TEXTURE_2D_ARRAY, c.GL_TEXTURE_BASE_LEVEL, 0);
+            c.glTexParameteri(c.GL_TEXTURE_2D_ARRAY, c.GL_TEXTURE_MAX_LEVEL, 0);
+            c.glTexImage3D(c.GL_TEXTURE_2D_ARRAY, 0, c.GL_RGB, @intCast(ssi.sprite_width), @intCast(ssi.sprite_height), @intCast(layers), 0, c.GL_RGB, c.GL_UNSIGNED_BYTE, null);
+
+            var sprite_count: i32 = 0;
+            var row: usize = 0;
+            var col: usize = 0;
+            while (row < bm.height) : (row += @intCast(ssi.sprite_height)) {
+                col = 0;
+                while (col < bm.width) : (col += @intCast(ssi.sprite_width)) {
+                    const region = try extractRegion(allocator, bm.raw, ssi.sprite_width, ssi.sprite_height, @intCast(col), @intCast(row), bm.width, 3);
+                    if (!isAllZeros(region)) {
+                        c.glTexSubImage3D(
+                            c.GL_TEXTURE_2D_ARRAY,
+                            0,
+                            0,
+                            0,
+                            @intCast(sprite_count),
+                            @intCast(ssi.sprite_width),
+                            @intCast(ssi.sprite_height),
+                            1,
+                            c.GL_RGB,
+                            c.GL_UNSIGNED_BYTE,
+                            region.ptr,
+                        );
+                        sprite_count += 1;
+                    }
+                }
+            }
+            std.log.info("layers: {}, Sprite count: {}", .{ layers, sprite_count });
+            std.log.info("height: {}, width: {}", .{ bm.height, bm.width });
+            try self.spritesheets.put(ssi.spritesheet_name, texture_array);
+        }
+    }
+};
+
+fn isAllZeros(data: []const u8) bool {
+    for (data) |byte| {
+        if (byte != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+fn extractRegion(allocator: std.mem.Allocator, data: []const u8, sprite_width: i32, sprite_height: i32, x: i32, y: i32, atlas_width: u32, bytes_per_pixel: i32) ![]const u8 {
+    const row_size = sprite_width * bytes_per_pixel;
+    const rs: usize = @intCast(row_size);
+
+    const sub_size: usize = @intCast(sprite_width * sprite_height * bytes_per_pixel);
+    var region = try allocator.alloc(u8, sub_size);
+
+    const aw: i32 = @intCast(atlas_width);
+    for (0..@intCast(sprite_height)) |r| {
+        const row: i32 = @intCast(r);
+        const src_index: usize = @intCast(((y + row) * aw + x) * bytes_per_pixel);
+        const dst_index: usize = @intCast(row * row_size);
+        @memcpy(region[dst_index .. dst_index + rs], data[src_index .. src_index + rs]);
+    }
+
+    return region;
+}
+pub var rootstate: RootState = undefined;
+
 /// Struct for initializing a new app. This
 /// is passed into the run function which then
 /// takes over and runs the basic game. This can also be viewed
@@ -63,7 +177,7 @@ pub var rng: std.Random.Xoshiro256 = undefined;
 /// }
 /// cleanup()
 pub fn run(app: AppDesc) !void {
-    const allocator = std.heap.page_allocator;
+    //var buf: [100]u8 = undefined;
     rng = std.Random.DefaultPrng.init(blk: {
         var seed: u64 = undefined;
         try std.posix.getrandom(std.mem.asBytes(&seed));
@@ -79,7 +193,13 @@ pub fn run(app: AppDesc) !void {
     const embedded_vs = @embedFile("assets/vert.vs");
     const embedded_fs = @embedFile("assets/frag.fs");
 
-    const shd = try Shader.init(embedded_vs, embedded_fs);
+    try rootstate.initRootState(&[_]SpriteSheetInfo{
+        .{ .sprite_width = 8, .sprite_height = 16, .spritesheet_name = "vga8x16.bmp" },
+    });
+    var shd = try Shader.init(embedded_vs, embedded_fs);
+    c.glUseProgram(shd.id);
+    Sprite.makeVao(&shd);
+    shd.setInt("atlas", @intCast(rootstate.spritesheets.get("vga8x16.bmp").?));
 
     Sprite.sprite_constants = .{
         .v_tile_size = app.v_tile_count,
@@ -101,11 +221,9 @@ pub fn run(app: AppDesc) !void {
     log.info("[LOG] LibEpoxy Version: {}\n", .{c.epoxy_gl_version()});
     var a: u32 = 0;
 
-    var angle: f32 = 0;
-
     var quit = false;
     while (!quit) {
-        var timer = try std.time.Timer.start();
+        //var timer = try std.time.Timer.start();
         a = c.SDL_GetTicks();
         var event: c.SDL_Event = undefined;
         var ev: Event = .{
@@ -120,57 +238,34 @@ pub fn run(app: AppDesc) !void {
             if (ev.ev.type == c.SDL_QUIT) {
                 quit = true;
             }
+            c.SDL_FlushEvents(c.SDL_KEYDOWN, c.SDL_KEYUP);
         }
 
-        const keystate = c.SDL_GetKeyboardState(null);
-        _ = keystate;
-
-        c.glEnable(c.GL_BLEND);
-        c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
-
-        var x: i32 = undefined;
-        var y: i32 = undefined;
-        const mouse = c.SDL_GetMouseState(&x, &y);
-        _ = mouse; // autofix
-        angle += 0.0005;
-
         window.drawBackgroundColor(0.0, 0.0, 0.0);
-        c.glUseProgram(shd.id);
 
         const er = c.glGetError();
         if (er != c.GL_NO_ERROR) {
             std.log.err("OpenGL error: {}", .{er});
         }
 
+        c.glBindTexture(c.GL_TEXTURE_2D_ARRAY, rootstate.spritesheets.get("vga8x16.bmp").?);
         if (app.tick) |tick| {
             try tick();
-            //c.glUseProgram(shd.id);
-            //shd.setMat4("model", model_matrix);
-            //shd.setMat4("view", camera.view_matrix);
-            //shd.setMat4("projection", camera.projection_matrix);
-            //try tick();
         }
         const sdl_delta = c.SDL_GetTicks() - a;
         if (sdl_delta < 16) {
             c.SDL_Delay(16 - sdl_delta);
         }
-        const frame_delta = timer.read();
-        if (app.show_fps) {
-            const fs = @as(f32, @floatFromInt(1_000_000_000 / frame_delta));
-            const fps = try std.fmt.allocPrint(allocator, "FPS: {d:.2}", .{fs});
-            Sprite.print(0, 1, Sprite.WHITE, Sprite.BLACK, fps);
-            allocator.free(fps);
-        }
+        //const frame_delta = timer.read();
+        //if (app.show_fps) {
+        //    const fs = @as(f32, @floatFromInt(1_000_000_000 / frame_delta));
+        //    const fps = try std.fmt.bufPrint(&buf, "FPS: {d:.2}", .{fs});
+        //    Sprite.print(0, 1, Sprite.WHITE, Sprite.BLACK, fps);
+        //}
         window.swapWindow();
     }
     if (app.cleanup) |cleanup| {
         try cleanup();
-    }
-}
-
-pub fn setActiveSpritesheet(spritesheets: *std.StringHashMap(Texture), name: []const u8) !void {
-    if (spritesheets.get(name)) |t| {
-        c.glBindTexture(c.GL_TEXTURE_2D, t);
     }
 }
 
@@ -259,21 +354,3 @@ pub const Keys = struct {
     pub const KEY_9: c_int = c.SDLK_9;
     pub const KEY_0: c_int = c.SDLK_0;
 };
-
-pub fn loadSpritesheets(
-    allocator: std.mem.Allocator,
-    paths: [][]const u8,
-) !std.StringHashMap(Texture) {
-    var shm = std.StringHashMap(Texture).init(allocator);
-    for (paths) |path| {
-        var file = try std.fs.cwd().openFile(path, .{});
-        defer file.close();
-        const embedded_file = try file.readToEndAlloc(allocator, 10_000_000_000);
-        defer allocator.free(embedded_file);
-        const bm = try BMP.create(embedded_file);
-        var img = Image.initFromBmp(bm);
-        const t = try img.imgToTexture();
-        try shm.put(path, t);
-    }
-    return shm;
-}

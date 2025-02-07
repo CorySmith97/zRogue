@@ -37,8 +37,8 @@ pub fn createWindow(self: *Self) void {
 }
 
 pub fn deinit(self: *Self) void {
-    c.SDL_DestroyWindow(self.window);
     c.SDL_GL_DeleteContext(self.context);
+    c.SDL_DestroyWindow(self.window);
 }
 
 pub fn getGLContext(self: *Self) !void {

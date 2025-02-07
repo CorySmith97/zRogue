@@ -68,10 +68,10 @@ pub fn build(b: *std.Build) void {
     std.log.info("[INFO] Optimization Level: {}\n", .{optimize});
 
     const examples = .{
-        "basic-window",
+        //"basic-window",
         "draw-sprite",
-        "draw-map",
-        "network",
+        //"draw-map",
+        //"network",
         "sprite-viewer",
     };
     // Uncomment these as needed

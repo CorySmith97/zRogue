@@ -1,5 +1,6 @@
 const std = @import("std");
 const c = @import("c.zig");
+const Color = @import("draw.zig").Color;
 
 const Self = @This();
 id: u32,
@@ -51,31 +52,65 @@ fn checkProgramLinking(program: u32) !void {
     }
 }
 fn setBool(self: *Self, name: []const u8, value: bool) void {
-    const location = c.glGetUniformLocation(self.id, name);
+    const location = c.glGetUniformLocation(self.id, name.ptr);
+    if (location == -1) {
+        @panic("Error in the paint");
+    }
     c.glUniform1i(location, if (value) 1 else 0);
 }
 
-fn setInt(self: *Self, name: []const u8, value: i32) void {
-    const location = c.glGetUniformLocation(self.id, name);
+pub fn setInt(self: *Self, name: []const u8, value: i32) void {
+    const location = c.glGetUniformLocation(self.id, name.ptr);
+    if (location == -1) {
+        @panic("Error in the paint");
+    }
+    c.glUniform1i(location, value);
+}
+pub fn setUint(self: *Self, name: []const u8, value: u32) void {
+    const location = c.glGetUniformLocation(self.id, name.ptr);
+    if (location == -1) {
+        @panic("Error in the paint");
+    }
     c.glUniform1i(location, value);
 }
 
-fn setFloat(self: *Self, name: []const u8, value: f32) void {
-    const location = c.glGetUniformLocation(self.id, name);
+pub fn setFloat(self: *Self, name: []const u8, value: f32) void {
+    const location = c.glGetUniformLocation(self.id, name.ptr);
+    if (location == -1) {
+        @panic("Error in the paint");
+    }
     c.glUniform1f(location, value);
 }
 
 pub fn set2Float(self: *Self, name: []const u8, value: []f32) void {
-    const location = c.glGetUniformLocation(self.id, name);
-    c.glUniform2fv(location, value);
+    const location = c.glGetUniformLocation(self.id, name.ptr);
+    if (location == -1) {
+        @panic("Error in the paint");
+    }
+    c.glUniform2f(location, value[0], value[1]);
+}
+pub fn setColor(self: *Self, name: []const u8, value: Color) void {
+    const location = c.glGetUniformLocation(self.id, name.ptr);
+    if (location == -1) {
+        @panic("Error in the paint");
+    }
+    c.glUniform4f(location, value.r, value.g, value.b, value.a);
 }
 
 pub fn setVec3(self: *Self, name: [*c]const u8, value: [300]f32) void {
-    const location = c.glGetUniformLocation(self.id, name);
+    const location = c.glGetUniformLocation(self.id, name.ptr);
     if (location == -1) {
         @panic("LOCATION ERROR");
     }
     c.glUniform3fv(location, 100, &value);
+}
+
+pub fn setText(self: *Self, name: [*c]const u8, text: c.GLuint) void {
+    const location = c.glGetUniformLocation(self.id, name.ptr);
+    if (location == -1) {
+        @panic("LOCATION ERROR");
+    }
+    _ = text;
 }
 
 pub fn setMat4(self: *Self, name: [*c]const u8, value: [16]f32) void {

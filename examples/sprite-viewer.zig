@@ -7,7 +7,6 @@ const s = app.Sprite;
 var sprite_counter: u8 = 0;
 var selected_color: u8 = 0;
 var app_desc: zRogue.AppDesc = undefined;
-var spritesheets: std.StringHashMap(zRogue.Texture) = undefined;
 
 const C = struct { color: s.Color, name: []const u8 };
 
@@ -87,20 +86,9 @@ pub fn main() !void {
     try run(app_desc);
 }
 
-pub fn init() !void {
-    const allocator = std.heap.page_allocator;
-
-    spritesheets = try zRogue.loadSpritesheets(allocator, @constCast(
-        &[_][]const u8{ "src/assets/VGA8x16.bmp", "src/assets/roguelike_1.bmp" },
-    ));
-    var iter = spritesheets.keyIterator();
-    while (iter.next()) |t| {
-        std.log.info("{any}", .{t});
-    }
-}
+pub fn init() !void {}
 
 pub fn tick() !void {
-    try zRogue.setActiveSpritesheet(&spritesheets, "src/assets/VGA8x16.bmp");
     const mouse_pos = zRogue.getMousePos();
     var buf: [1000]u8 = undefined;
     const string = try std.fmt.bufPrint(&buf, "sprite count: {d}", .{sprite_counter});
@@ -112,7 +100,6 @@ pub fn tick() !void {
         selected_color = colors.len - 1;
     }
 
-    s.drawSpriteC(8, 23, colors[selected_color].color, s.BLACK, sprite_counter, 3, 3);
     s.drawBox(6, 35, 17, 21, s.PASTEL_PINK, s.BLACK);
     s.print(7, 19, s.WHITE, s.BLACK, "Press 'A' or 'D' to explore");
     s.drawBox(6, 35, 12, 16, s.PASTEL_PINK, s.BLACK);
@@ -122,25 +109,24 @@ pub fn tick() !void {
     s.drawBox(6, 33, 22, 26, s.PASTEL_PINK, s.BLACK);
 
     // Selected Color
-    s.printC(7, 28, colors[selected_color].color, s.BLACK, colors[selected_color].name, 2);
+    //s.printC(7, 28, colors[selected_color].color, s.BLACK, colors[selected_color].name, 2);
     s.drawBox(6, 33, 27, 31, s.PASTEL_PINK, s.BLACK);
 
     s.drawBox(40, 74, 10, 44, s.PASTEL_PINK, s.TRANSPARENT);
-    try zRogue.setActiveSpritesheet(&spritesheets, "src/assets/roguelike_1.bmp");
-    for (0..255) |sprite| {
-        const x_offset = sprite % 16 * 2;
-        const y_offset = sprite / 16 * 2;
-        const x: f32 = @floatFromInt(41 + x_offset);
-        const y: f32 = @floatFromInt(11 + y_offset);
-        s.drawSpriteC(x, y, s.WHITE, s.TRANSPARENT, @intCast(sprite), 2, 2);
-    }
-    try zRogue.setActiveSpritesheet(&spritesheets, "src/assets/VGA8x16.bmp");
+    //s.drawSpriteC(8, 23, colors[selected_color].color, s.BLACK, sprite_counter, 3);
+    //for (0..255) |sprite| {
+    //    const x_offset = sprite % 16 * 2;
+    //    const y_offset = sprite / 16 * 2;
+    //    const x: f32 = @floatFromInt(41 + x_offset);
+    //    const y: f32 = @floatFromInt(11 + y_offset);
+    //    s.drawSpriteC(x, y, s.WHITE, s.TRANSPARENT, @intCast(sprite), 2);
+    //}
 
-    animation_h.draw();
-    animation_e.draw();
-    animation_y.draw();
+    //animation_h.draw();
+    //animation_e.draw();
+    //animation_y.draw();
 
-    s.printC(30, 5, s.PASTEL_GREEN, s.BLACK, "Sprite Viewer", 2);
+    //s.printC(30, 5, s.PASTEL_GREEN, s.BLACK, "Sprite Viewer", 2);
 
     s.drawSprite(
         @floor(mouse_pos.x * 80 / 1200),
