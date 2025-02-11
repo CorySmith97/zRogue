@@ -4,10 +4,11 @@ const run = zRogue.run;
 const app = zRogue.App;
 const s = app.Sprite;
 
-var sprite_counter: u8 = 0;
+var sprite_counter: u16 = 0;
 var selected_color: u8 = 0;
 var app_desc: zRogue.AppDesc = undefined;
-var spritesheets: std.StringHashMap(zRogue.Texture) = undefined;
+var spritesheets: std.StringHashMap(zRogue.SpritesheetInfo) = undefined;
+var camera: zRogue.Camera2D = .{};
 
 const C = struct { color: s.Color, name: []const u8 };
 
@@ -91,7 +92,11 @@ pub fn init() !void {
     const allocator = std.heap.page_allocator;
 
     spritesheets = try zRogue.loadSpritesheets(allocator, @constCast(
-        &[_][]const u8{ "src/assets/VGA8x16.bmp", "src/assets/roguelike_1.bmp" },
+        &[_]zRogue.SpritesheetParams{
+            .{ .name = "src/assets/VGA8x16.bmp", .sprite_size = .{ 8, 16 }, .has_alpha = false },
+            .{ .name = "src/assets/roguelike_1.bmp", .sprite_size = .{ 16, 16 }, .has_alpha = false },
+            .{ .name = "src/assets/fan.bmp", .sprite_size = .{ 16, 16 }, .has_alpha = true },
+        },
     ));
     var iter = spritesheets.keyIterator();
     while (iter.next()) |t| {
@@ -100,6 +105,7 @@ pub fn init() !void {
 }
 
 pub fn tick() !void {
+    zRogue.changeActiveShader("ui");
     try zRogue.setActiveSpritesheet(&spritesheets, "src/assets/VGA8x16.bmp");
     const mouse_pos = zRogue.getMousePos();
     var buf: [1000]u8 = undefined;
@@ -112,7 +118,6 @@ pub fn tick() !void {
         selected_color = colors.len - 1;
     }
 
-    s.drawSpriteC(8, 23, colors[selected_color].color, s.BLACK, sprite_counter, 3, 3);
     s.drawBox(6, 35, 17, 21, s.PASTEL_PINK, s.BLACK);
     s.print(7, 19, s.WHITE, s.BLACK, "Press 'A' or 'D' to explore");
     s.drawBox(6, 35, 12, 16, s.PASTEL_PINK, s.BLACK);
@@ -126,13 +131,18 @@ pub fn tick() !void {
     s.drawBox(6, 33, 27, 31, s.PASTEL_PINK, s.BLACK);
 
     s.drawBox(40, 74, 10, 44, s.PASTEL_PINK, s.TRANSPARENT);
-    try zRogue.setActiveSpritesheet(&spritesheets, "src/assets/roguelike_1.bmp");
-    for (0..255) |sprite| {
-        const x_offset = sprite % 16 * 2;
-        const y_offset = sprite / 16 * 2;
+    try zRogue.setActiveSpritesheet(&spritesheets, "src/assets/fan.bmp");
+    s.drawSpriteC(8, 23, colors[selected_color].color, s.BLACK, @intCast(sprite_counter), 3);
+    for (0..1024) |sprite| {
+        const x_offset = sprite % 32;
+        const y_offset = sprite / 32;
         const x: f32 = @floatFromInt(41 + x_offset);
         const y: f32 = @floatFromInt(11 + y_offset);
-        s.drawSpriteC(x, y, s.WHITE, s.TRANSPARENT, @intCast(sprite), 2, 2);
+        if (sprite != sprite_counter) {
+            s.drawSprite(x, y, s.WHITE, s.TRANSPARENT, @intCast(sprite));
+        } else {
+            s.drawSprite(x, y, s.WHITE, s.YELLOW, @intCast(sprite));
+        }
     }
     try zRogue.setActiveSpritesheet(&spritesheets, "src/assets/VGA8x16.bmp");
 
@@ -142,22 +152,36 @@ pub fn tick() !void {
 
     s.printC(30, 5, s.PASTEL_GREEN, s.BLACK, "Sprite Viewer", 2);
 
-    s.drawSprite(
+    zRogue.changeActiveShader("basic");
+    try zRogue.setActiveSpritesheet(&spritesheets, "src/assets/fan.bmp");
+    s.drawSpriteCamera(
+        &camera,
         @floor(mouse_pos.x * 80 / 1200),
         @floor(mouse_pos.y * 50 / 800),
         s.YELLOW,
         s.TRANSPARENT,
         'X',
     );
+    s.drawSpriteCamera(&camera, 10, 10, s.WHITE, s.TRANSPARENT, 14);
 }
 
 pub fn events(event: *zRogue.Event) !void {
     @setRuntimeSafety(false);
+    if (event.getMiddleMouseDelta()) |delta| {
+        camera.offset[0] -= delta[0] * 0.001;
+        camera.offset[1] += delta[1] * 0.001;
+    }
     if (event.isKeyDown(zRogue.Keys.KEY_Escape)) {
         event.windowShouldClose(true);
     }
     if (event.isKeyDown(zRogue.Keys.KEY_A)) {
         sprite_counter -= 1;
+    }
+    if (event.isKeyDown(zRogue.Keys.KEY_Q)) {
+        sprite_counter -= 32;
+    }
+    if (event.isKeyDown(zRogue.Keys.KEY_E)) {
+        sprite_counter += 32;
     }
     if (event.isKeyDown(zRogue.Keys.KEY_D)) {
         sprite_counter += 1;

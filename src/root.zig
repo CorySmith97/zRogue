@@ -19,7 +19,8 @@ const c = App.c;
 pub const Algorithms = @import("algorithms.zig");
 pub const Geometry = @import("math/geometry.zig");
 pub const Network = @import("network/network.zig");
-const Camera = App.Camera;
+pub const Camera = App.Camera;
+pub const Camera2D = App.Camera.Camera2D;
 const Mesh = App.Mesh;
 const vec3 = App.Camera.vec3;
 const vec2 = App.Camera.vec2;
@@ -51,6 +52,9 @@ pub const AppDesc = struct {
 };
 
 pub var rng: std.Random.Xoshiro256 = undefined;
+var shd: Shader = undefined;
+var shd_ui: Shader = undefined;
+var shd_basic: Shader = undefined;
 
 /// This funciton is our app's entry point. We use struct intializatiteston
 /// in order to help keep this clean. The App desc is a struct with a handful
@@ -76,10 +80,16 @@ pub fn run(app: AppDesc) !void {
 
     try window.getGLContext();
 
-    const embedded_vs = @embedFile("assets/vert.vs");
-    const embedded_fs = @embedFile("assets/frag.fs");
+    const ui_vs = @embedFile("assets/ui.vs");
+    const ui_fs = @embedFile("assets/ui.fs");
+    const basic_vs = @embedFile("assets/basic.vs");
+    const basic_fs = @embedFile("assets/basic.fs");
 
-    const shd = try Shader.init(embedded_vs, embedded_fs);
+    shd_ui = try Shader.init(ui_vs, ui_fs);
+    shd_basic = try Shader.init(basic_vs, basic_fs);
+    shd = shd_ui;
+    c.glUseProgram(shd_basic.id);
+    Sprite.makeVao(&shd_ui, &shd_basic);
 
     Sprite.sprite_constants = .{
         .v_tile_size = app.v_tile_count,
@@ -98,7 +108,6 @@ pub fn run(app: AppDesc) !void {
     if (app.init) |init| {
         try init();
     }
-    log.info("[LOG] LibEpoxy Version: {}\n", .{c.epoxy_gl_version()});
     var a: u32 = 0;
 
     var angle: f32 = 0;
@@ -135,7 +144,6 @@ pub fn run(app: AppDesc) !void {
         angle += 0.0005;
 
         window.drawBackgroundColor(0.0, 0.0, 0.0);
-        c.glUseProgram(shd.id);
 
         const er = c.glGetError();
         if (er != c.GL_NO_ERROR) {
@@ -168,9 +176,27 @@ pub fn run(app: AppDesc) !void {
     }
 }
 
-pub fn setActiveSpritesheet(spritesheets: *std.StringHashMap(Texture), name: []const u8) !void {
+pub fn checkActiveShader() void {
+    var currentProgram: c.GLint = 0;
+    c.glGetIntegerv(c.GL_CURRENT_PROGRAM, &currentProgram);
+}
+
+pub fn changeActiveShader(name: []const u8) void {
+    if (std.mem.eql(u8, name, "basic")) {
+        shd = shd_basic;
+        c.glUseProgram(shd.id);
+    }
+    if (std.mem.eql(u8, name, "ui")) {
+        shd = shd_ui;
+        c.glUseProgram(shd.id);
+    }
+}
+
+pub fn setActiveSpritesheet(spritesheets: *std.StringHashMap(SpritesheetInfo), name: []const u8) !void {
     if (spritesheets.get(name)) |t| {
-        c.glBindTexture(c.GL_TEXTURE_2D, t);
+        c.glBindTexture(c.GL_TEXTURE_2D, t.texture);
+        shd.set2Float("sprite_size", @constCast(&t.sprite_size));
+        shd.set2Float("atlas_size", @constCast(&t.atlas_size));
     }
 }
 
@@ -189,6 +215,37 @@ pub const Event = struct {
             return (self.key.* == key);
         }
         return false;
+    }
+    pub fn isMouseButtonMiddle(self: *Self) bool {
+        if (self.ev.type == c.SDL_MOUSEBUTTONDOWN) {
+            const pressed = self.ev.button.button == c.SDL_BUTTON_MIDDLE;
+            std.log.info("Pressed? :{}", .{pressed});
+            return pressed;
+        }
+        return false;
+    }
+    pub fn isMouseMotion(self: *Self) ?vec2 {
+        if (self.ev.type == c.SDL_MOUSEMOTION) {
+            const delta_x = self.ev.motion.xrel;
+            const delta_y = self.ev.motion.yrel;
+            std.log.info("Delta: {} {}", .{ delta_x, delta_y });
+            return vec2{ @floatFromInt(delta_x), @floatFromInt(delta_y) };
+        }
+        return null;
+    }
+    pub fn getMiddleMouseDelta(self: *Self) ?vec2 {
+        // Make sure the event is a mouse motion event.
+        if (self.ev.type == c.SDL_MOUSEMOTION) {
+            // The motion event carries a bitmask "state" with the currently pressed buttons.
+            // SDL_BUTTON_MIDDLE is typically defined such that:
+            //   (1 << (SDL_BUTTON_MIDDLE - 1))
+            if ((self.ev.motion.state & c.SDL_BUTTON_MIDDLE) != 0) {
+                const delta_x = self.ev.motion.xrel;
+                const delta_y = self.ev.motion.yrel;
+                return vec2{ @floatFromInt(delta_x), @floatFromInt(delta_y) };
+            }
+        }
+        return null;
     }
     // User definition for closing the window outside of pressing the X
     // at the top of the window ie. Key to close the window or game
@@ -209,6 +266,21 @@ pub fn getMousePos() Vec2 {
     _ = c.SDL_GetMouseState(&x, &y);
 
     return .{ .x = @floatFromInt(x), .y = @floatFromInt(y) };
+}
+pub fn getRelativeMousePos() Vec2 {
+    var x: c_int = 0;
+    var y: c_int = 0;
+    _ = c.SDL_GetRelativeMouseState(&x, &y);
+
+    return .{ .x = @floatFromInt(x), .y = @floatFromInt(y) };
+}
+
+pub fn mouseButton() bool {
+    const mouse_state = c.SDL_GetMouseState(null, null);
+    if (mouse_state == 2) {
+        return true;
+    }
+    return false;
 }
 
 const KEYTYPE = c.SDL_Event.key.keysym.sym;
@@ -260,20 +332,47 @@ pub const Keys = struct {
     pub const KEY_0: c_int = c.SDLK_0;
 };
 
+pub const SpritesheetInfo = struct {
+    texture: Texture,
+    sprite_size: vec2,
+    atlas_size: vec2,
+};
+
+pub const SpritesheetParams = struct {
+    name: []const u8,
+    sprite_size: vec2,
+    has_alpha: bool,
+};
+
 pub fn loadSpritesheets(
     allocator: std.mem.Allocator,
-    paths: [][]const u8,
-) !std.StringHashMap(Texture) {
-    var shm = std.StringHashMap(Texture).init(allocator);
+    paths: []SpritesheetParams,
+) !std.StringHashMap(SpritesheetInfo) {
+    var shm = std.StringHashMap(SpritesheetInfo).init(allocator);
     for (paths) |path| {
-        var file = try std.fs.cwd().openFile(path, .{});
+        var file = try std.fs.cwd().openFile(path.name, .{});
         defer file.close();
         const embedded_file = try file.readToEndAlloc(allocator, 10_000_000_000);
         defer allocator.free(embedded_file);
         const bm = try BMP.create(embedded_file);
         var img = Image.initFromBmp(bm);
-        const t = try img.imgToTexture();
-        try shm.put(path, t);
+        if (path.has_alpha) {
+            const t = try img.imgToTextureAlpha();
+            const si: SpritesheetInfo = .{
+                .texture = t,
+                .sprite_size = path.sprite_size,
+                .atlas_size = .{ @floatFromInt(bm.width), @floatFromInt(bm.height) },
+            };
+            try shm.put(path.name, si);
+        } else {
+            const t = try img.imgToTexture();
+            const si: SpritesheetInfo = .{
+                .texture = t,
+                .sprite_size = path.sprite_size,
+                .atlas_size = .{ @floatFromInt(bm.width), @floatFromInt(bm.height) },
+            };
+            try shm.put(path.name, si);
+        }
     }
     return shm;
 }

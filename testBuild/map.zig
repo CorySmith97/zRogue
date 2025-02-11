@@ -16,6 +16,11 @@ pub fn usizetof32(x: usize) f32 {
     return @as(f32, @floatFromInt(x));
 }
 
+const MAP_WIDTH: f32 = 100;
+const MAP_HEIGHT: f32 = 100;
+const MAP_WIDTHI: i32 = 100;
+const MAP_HEIGHTI: i32 = 100;
+
 const Self = @This();
 tiles: ArrayList(TileTypes),
 visible_tiles: ArrayList(bool),
@@ -33,7 +38,7 @@ pub fn markTileVisible(self: *Self, pos: Vec2) !void {
 // This is the index function to translate x/y coordinates
 // to our flat array
 pub fn index(x: f32, y: f32) usize {
-    const idx = @as(usize, @intFromFloat((y * 80) + x));
+    const idx = @as(usize, @intFromFloat((y * MAP_WIDTH) + x));
     return idx;
 }
 
@@ -45,26 +50,26 @@ pub fn applyRoomToMap(self: *Self, room: Rect) void {
     }
 }
 
-pub fn newMap() ![80 * 50]TileTypes {
-    var map = [_]TileTypes{TileTypes.Floor} ** (80 * 50);
+pub fn newMap() ![MAP_WIDTH * MAP_HEIGHT]TileTypes {
+    var map = [_]TileTypes{TileTypes.Floor} ** (MAP_WIDTH * MAP_HEIGHT);
 
     var x: f32 = 0;
-    while (x < 80) : (x += 1) {
+    while (x < MAP_WIDTH) : (x += 1) {
         map[index(x, 0)] = TileTypes.Wall;
-        map[index(x, 49)] = TileTypes.Wall;
+        map[index(x, 99)] = TileTypes.Wall;
     }
     var y: f32 = 0;
-    while (y < 50) : (y += 1) {
+    while (y < MAP_HEIGHT) : (y += 1) {
         map[index(0, y)] = TileTypes.Wall;
-        map[index(79, y)] = TileTypes.Wall;
+        map[index(99, y)] = TileTypes.Wall;
     }
 
     const rand = app.rng.random();
 
     var i: f32 = 0;
-    while (i < 400) : (i += 1) {
-        const rand_x = rand.float(f32) * 79.0;
-        const rand_y = rand.float(f32) * 49.0;
+    while (i < 10000) : (i += 1) {
+        const rand_x = rand.float(f32) * 99.0;
+        const rand_y = rand.float(f32) * 99.0;
         const rand_idx = index(rand_x, rand_y);
         if (rand_idx != index(40, 25)) {
             map[rand_idx] = TileTypes.Wall;
@@ -77,7 +82,7 @@ pub fn newMap() ![80 * 50]TileTypes {
 pub fn horizontal_tunnel(self: *Self, x1: f32, x2: f32, y: f32) void {
     for (@as(usize, @intFromFloat(@min(x1, x2)))..(@as(usize, @intFromFloat(@max(x1, x2))) + 1)) |x| {
         const idx = index(usizetof32(x), y);
-        if (0 < idx and idx < (80 * 50)) {
+        if (0 < idx and idx < (MAP_WIDTH * MAP_HEIGHT)) {
             self.tiles.items[idx] = TileTypes.Floor;
         }
     }
@@ -85,7 +90,7 @@ pub fn horizontal_tunnel(self: *Self, x1: f32, x2: f32, y: f32) void {
 pub fn vertical_tunnel(self: *Self, y1: f32, y2: f32, x: f32) void {
     for (@as(usize, @intFromFloat(@min(y1, y2)))..(@as(usize, @intFromFloat(@max(y1, y2))) + 1)) |y| {
         const idx = index(x, usizetof32(y));
-        if (0 < idx and idx < (80 * 50)) {
+        if (0 < idx and idx < (MAP_WIDTH * MAP_HEIGHT)) {
             self.tiles.items[idx] = TileTypes.Floor;
         }
     }
@@ -93,15 +98,15 @@ pub fn vertical_tunnel(self: *Self, y1: f32, y2: f32, x: f32) void {
 
 pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) !Self {
     var map = Self{
-        .tiles = try std.ArrayList(TileTypes).initCapacity(alloc, 80 * 50),
-        .visible_tiles = try std.ArrayList(bool).initCapacity(alloc, 80 * 50),
-        .revealed_tiles = try std.ArrayList(bool).initCapacity(alloc, 80 * 50),
+        .tiles = try std.ArrayList(TileTypes).initCapacity(alloc, MAP_WIDTH * MAP_HEIGHT),
+        .visible_tiles = try std.ArrayList(bool).initCapacity(alloc, MAP_WIDTH * MAP_HEIGHT),
+        .revealed_tiles = try std.ArrayList(bool).initCapacity(alloc, MAP_WIDTH * MAP_HEIGHT),
         .rooms = std.ArrayList(Rect).init(alloc),
-        .width = 80,
-        .height = 50,
+        .width = MAP_WIDTH,
+        .height = MAP_HEIGHT,
     };
 
-    for (0..(80 * 50)) |i| {
+    for (0..(MAP_WIDTH * MAP_HEIGHT)) |i| {
         try map.tiles.insert(i, TileTypes.Wall);
         try map.visible_tiles.insert(i, false);
         try map.revealed_tiles.insert(i, false);
@@ -115,8 +120,8 @@ pub fn newMapWithRooms(alloc: std.mem.Allocator, player: *Player) !Self {
     for (0..MAX_ROOMS) |_| {
         const w = rand.intRangeAtMost(i32, MIN_SIZE, MAX_SIZE);
         const h = rand.intRangeAtMost(i32, MIN_SIZE, MAX_SIZE);
-        const x = rand.intRangeAtMost(i32, 1, 80 - w - 1) - 1;
-        const y = rand.intRangeAtMost(i32, 1, 50 - h - 1) - 1;
+        const x = rand.intRangeAtMost(i32, 1, MAP_WIDTHI - w - 1) - 1;
+        const y = rand.intRangeAtMost(i32, 1, MAP_HEIGHTI - h - 1) - 1;
         const new_room = Rect.new(
             i32tof32(x),
             i32tof32(y),

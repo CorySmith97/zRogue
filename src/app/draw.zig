@@ -1,5 +1,14 @@
 const std = @import("std");
 const c = @import("c.zig");
+const Shader = @import("shader.zig");
+const Camera = @import("camera.zig").Camera2D;
+
+pub fn checkGLError() void {
+    const err = c.glGetError();
+    if (err != c.GL_NO_ERROR) {
+        std.debug.print("OpenGL error: {}\n", .{err});
+    }
+}
 
 const SpriteConstants = struct {
     h_tile_size: f32 = 80,
@@ -9,6 +18,7 @@ const SpriteConstants = struct {
 };
 
 pub var sprite_constants: SpriteConstants = .{};
+pub var VaoBuffer: Buffers = undefined;
 
 /// simple RGB struct. Colors are between 0.0 and 1.0.
 pub const Color = struct {
@@ -41,7 +51,7 @@ pub const Animation = struct {
             self.frame_count += 1;
         }
         const frame = self.frames[@intCast(self.cur_frame)];
-        drawSpriteC(self.x, self.y, frame.fg, frame.bg, frame.char, self.font_size, self.font_size);
+        drawSpriteC(self.x, self.y, frame.fg, frame.bg, frame.char, self.font_size);
     }
 };
 
@@ -49,6 +59,8 @@ const Buffers = struct {
     vao: u32,
     vbo: u32,
     ebo: u32,
+    shd_ui: *Shader,
+    shd_basic: *Shader,
 
     pub fn deinit(self: *@This()) void {
         c.glDeleteVertexArrays(1, &self.vao);
@@ -77,11 +89,17 @@ pub const PASTEL_YELLOW = Color{ .r = 0.9, .g = 0.9, .b = 0.575 };
 pub const PASTEL_ORANGE = Color{ .r = 0.9, .g = 0.75, .b = 0.575 };
 pub const TRANSPARENT = Color{ .r = 0, .g = 0, .b = 0, .a = 0 };
 
-fn makeVao(points: [4][12]f32) Buffers {
-    const indices = [_][3]u32{
-        [_]u32{ 0, 1, 2 },
-        [_]u32{ 0, 2, 3 },
-    };
+const indices = [_][3]u32{
+    [_]u32{ 0, 1, 2 },
+    [_]u32{ 0, 2, 3 },
+};
+const verts = [_][4]f32{
+    [_]f32{ 0.0, 1.0, 0, 1 },
+    [_]f32{ 1.0, 1.0, 0, 0 },
+    [_]f32{ 1.0, 0.0, 1, 0 },
+    [_]f32{ 0.0, 0.0, 1, 1 },
+};
+pub fn makeVao(shader: *Shader, shader_basic: *Shader) void {
     var vao: c_uint = undefined;
     c.glGenVertexArrays(1, &vao);
     c.glBindVertexArray(vao);
@@ -91,8 +109,8 @@ fn makeVao(points: [4][12]f32) Buffers {
     c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
     c.glBufferData(
         c.GL_ARRAY_BUFFER,
-        points.len * points[0].len * @sizeOf(c.GLfloat),
-        &points,
+        verts.len * verts[0].len * @sizeOf(c.GLfloat),
+        &verts,
         c.GL_STATIC_DRAW,
     );
     var ebo: u32 = 0;
@@ -111,244 +129,91 @@ fn makeVao(points: [4][12]f32) Buffers {
         2,
         c.GL_FLOAT,
         c.GL_FALSE,
-        12 * @sizeOf(f32),
+        4 * @sizeOf(f32),
         c_offset,
     );
     c.glEnableVertexAttribArray(0);
 
-    const fg_offset = @as(?*anyopaque, @ptrFromInt(2 * @sizeOf(f32)));
+    const tex_offset = @as(?*anyopaque, @ptrFromInt(2 * @sizeOf(f32)));
     c.glVertexAttribPointer(
         1,
-        4,
+        2,
         c.GL_FLOAT,
         c.GL_FALSE,
-        12 * @sizeOf(f32),
-        fg_offset,
+        4 * @sizeOf(f32),
+        tex_offset,
     );
     c.glEnableVertexAttribArray(1);
 
-    const bg_offset = @as(?*anyopaque, @ptrFromInt(6 * @sizeOf(f32)));
-    c.glVertexAttribPointer(
-        2,
-        4,
-        c.GL_FLOAT,
-        c.GL_FALSE,
-        12 * @sizeOf(f32),
-        bg_offset,
-    );
-    c.glEnableVertexAttribArray(2);
-
-    const tex_offset = @as(?*anyopaque, @ptrFromInt(10 * @sizeOf(f32)));
-    c.glVertexAttribPointer(
-        3,
-        2,
-        c.GL_FLOAT,
-        c.GL_FALSE,
-        12 * @sizeOf(f32),
-        tex_offset,
-    );
-    c.glEnableVertexAttribArray(3);
-
-    return .{
+    VaoBuffer = .{
         .vao = vao,
         .ebo = ebo,
         .vbo = vbo,
+        .shd_ui = shader,
+        .shd_basic = shader_basic,
     };
 }
+
+// ---------------------------------------------
+// UI based functions:
+// These function do not use an mvp to draw, but
+// rather draw to a top layer based on screen
+// pos.
 
 pub fn drawSpriteC(
     cell_x: f32,
     cell_y: f32,
     fg: Color,
     bg: Color,
-    ascii_ch: u8,
-    x_size: f32,
-    y_size: f32,
+    ascii_ch: u32,
+    font_size: f32,
 ) void {
-    const ascii_tex_pos_x = ascii_ch % 16;
-    const ascii_tex_pos_y = ascii_ch / 16;
-
-    const x = @as(f32, @floatFromInt(ascii_tex_pos_x));
-    const y = 15 - @as(f32, @floatFromInt(ascii_tex_pos_y));
-    const pos_x = (2 / sprite_constants.h_tile_size) * cell_x;
-    const pos_y = (2 / sprite_constants.v_tile_size) * (-cell_y);
-    const tex_x_offset = 1.0 / 16.0;
-    const tex_y_offset = 1.0 / 16.0;
-    const cell_size_x = 1.0 / sprite_constants.h_tile_size * x_size;
-    const cell_size_y = 1.0 / sprite_constants.v_tile_size * y_size;
-
-    const vertices = [_][12]f32{
-        [_]f32{
-            // position
-            cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
-            cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            fg.a,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            bg.a,
-            // texcoord
-            tex_x_offset * (x + 1),
-            1.0 - tex_y_offset * (y + 1),
-        },
-        [_]f32{
-            // position
-            cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
-            cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            fg.a,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            bg.a,
-            // texcoord
-            tex_x_offset * (x + 1),
-            1.0 - tex_y_offset * y,
-        },
-        [_]f32{
-            // position
-            cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
-            cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            fg.a,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            bg.a,
-            // texcoord
-            tex_x_offset * x,
-            1.0 - tex_y_offset * y,
-        },
-        [_]f32{
-            // position
-            cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
-            cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            fg.a,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            bg.a,
-            // texcoord
-            tex_x_offset * x,
-            1.0 - tex_y_offset * (y + 1),
-        },
-    };
-    var buff = makeVao(vertices);
-    c.glBindVertexArray(@intCast(buff.vao));
+    VaoBuffer.shd_ui.setColor("fg", fg);
+    VaoBuffer.shd_ui.setColor("bg", bg);
+    VaoBuffer.shd_ui.set2Float("position", @constCast(&[_]f32{ cell_x, cell_y }));
+    VaoBuffer.shd_ui.setFloat("scalar", font_size);
+    VaoBuffer.shd_ui.setFloat("texId", @floatFromInt(ascii_ch));
+    c.glBindVertexArray(VaoBuffer.vao);
     c.glDrawElements(c.GL_TRIANGLES, 6, c.GL_UNSIGNED_INT, null);
-    buff.deinit();
 }
 
 /// Draws a simple sprite at a given location. The cells are on a 80x50 grid.
-pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) void {
-    const ascii_tex_pos_x = ascii_ch % 16;
-    const ascii_tex_pos_y = ascii_ch / 16;
-
-    const x = @as(f32, @floatFromInt(ascii_tex_pos_x));
-    const y = 15 - @as(f32, @floatFromInt(ascii_tex_pos_y));
-    const pos_x = (2 / sprite_constants.h_tile_size) * cell_x;
-    const pos_y = (2 / sprite_constants.v_tile_size) * (-cell_y);
-    const tex_x_offset = 1.0 / 16.0;
-    const tex_y_offset = 1.0 / 16.0;
-    const cell_size_x = 1.0 / sprite_constants.h_tile_size;
-    const cell_size_y = 1.0 / sprite_constants.v_tile_size;
-
-    const vertices = [_][12]f32{
-        [_]f32{
-            // position
-            cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
-            cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            fg.a,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            bg.a,
-            // texcoord
-            tex_x_offset * (x + 1),
-            1.0 - tex_y_offset * (y + 1),
-        },
-        [_]f32{
-            // position
-            cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
-            cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            fg.a,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            bg.a,
-            // texcoord
-            tex_x_offset * (x + 1),
-            1.0 - tex_y_offset * y,
-        },
-        [_]f32{
-            // position
-            cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
-            cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            fg.a,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            bg.a,
-            // texcoord
-            tex_x_offset * x,
-            1.0 - tex_y_offset * y,
-        },
-        [_]f32{
-            // position
-            cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
-            cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            fg.a,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            bg.a,
-            // texcoord
-            tex_x_offset * x,
-            1.0 - tex_y_offset * (y + 1),
-        },
-    };
-    var buff = makeVao(vertices);
-    c.glBindVertexArray(@intCast(buff.vao));
+pub fn drawSprite(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u32) void {
+    VaoBuffer.shd_ui.setColor("fg", fg);
+    VaoBuffer.shd_ui.setColor("bg", bg);
+    VaoBuffer.shd_ui.set2Float("position", @constCast(&[_]f32{ cell_x, cell_y }));
+    VaoBuffer.shd_ui.setFloat("scalar", 1);
+    VaoBuffer.shd_ui.setFloat("texId", @floatFromInt(ascii_ch));
+    c.glBindVertexArray(VaoBuffer.vao);
     c.glDrawElements(c.GL_TRIANGLES, 6, c.GL_UNSIGNED_INT, null);
-    buff.deinit();
+}
+
+pub fn drawSpriteAsciiC(
+    cell_x: f32,
+    cell_y: f32,
+    fg: Color,
+    bg: Color,
+    ascii_ch: u8,
+    font_size: f32,
+) void {
+    VaoBuffer.shd_ui.setColor("fg", fg);
+    VaoBuffer.shd_ui.setColor("bg", bg);
+    VaoBuffer.shd_ui.set2Float("position", @constCast(&[_]f32{ cell_x, cell_y }));
+    VaoBuffer.shd_ui.setFloat("scalar", font_size);
+    VaoBuffer.shd_ui.setFloat("texId", @floatFromInt(ascii_ch));
+    c.glBindVertexArray(VaoBuffer.vao);
+    c.glDrawElements(c.GL_TRIANGLES, 6, c.GL_UNSIGNED_INT, null);
+}
+
+/// Draws a simple sprite at a given location. The cells are on a 80x50 grid.
+pub fn drawSpriteAscii(cell_x: f32, cell_y: f32, fg: Color, bg: Color, ascii_ch: u8) void {
+    VaoBuffer.shd_ui.setColor("fg", fg);
+    VaoBuffer.shd_ui.setColor("bg", bg);
+    VaoBuffer.shd_ui.set2Float("position", @constCast(&[_]f32{ cell_x, cell_y }));
+    VaoBuffer.shd_ui.setFloat("scalar", 1);
+    VaoBuffer.shd_ui.setFloat("texId", @floatFromInt(ascii_ch));
+    c.glBindVertexArray(VaoBuffer.vao);
+    c.glDrawElements(c.GL_TRIANGLES, 6, c.GL_UNSIGNED_INT, null);
 }
 
 // This draw with the start_y being the lower of the two values
@@ -380,107 +245,10 @@ pub fn drawBox(
     drawHorzLine(y_max, x_min + 1, x_max, fg, bg);
     drawVertLine(x_min, y_min + 1, y_max, fg, bg);
     drawVertLine(x_max, y_min + 1, y_max, fg, bg);
-    drawSprite(x_min, y_min, fg, bg, 218);
-    drawSprite(x_max, y_max, fg, bg, 217);
-    drawSprite(x_min, y_max, fg, bg, 192);
-    drawSprite(x_max, y_min, fg, bg, 191);
-}
-
-pub fn drawSprite3d(
-    cell_x: i32,
-    cell_y: i32,
-    cell_z: i32,
-    fg: Color,
-    bg: Color,
-    ascii_ch: u8,
-) !void {
-    _ = cell_z; // autofix
-    const ascii_tex_pos_x = ascii_ch % 16;
-    const ascii_tex_pos_y = ascii_ch / 16;
-
-    const x = @as(f32, @floatFromInt(ascii_tex_pos_x));
-    const y = 15 - @as(f32, @floatFromInt(ascii_tex_pos_y));
-    const pos_x = 0.025 * cell_x - 10;
-    const pos_y = 0.04 * (-cell_y) - 10;
-    const tex_x_offset = 1.0 / 16.0;
-    const tex_y_offset = 1.0 / 16.0;
-    const cell_size_x = 1.0 / 80.0;
-    const cell_size_y = 1.0 / 50.0;
-
-    const vertices = [_][11]f32{
-        [_]f32{
-            // position
-            cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
-            0.0,
-            cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            // texcoord
-            tex_x_offset * (x + 1),
-            1.0 - tex_y_offset * (y + 1),
-        },
-        [_]f32{
-            // position
-            cell_size_x * 1.0 + pos_x - (1 - cell_size_x),
-            0.0,
-            cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            // texcoord
-            tex_x_offset * (x + 1),
-            1.0 - tex_y_offset * y,
-        },
-        [_]f32{
-            // position
-            cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
-            0.0,
-            cell_size_y * -1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            // texcoord
-            tex_x_offset * x,
-            1.0 - tex_y_offset * y,
-        },
-        [_]f32{
-            // position
-            cell_size_x * -1.0 + pos_x - (1 - cell_size_x),
-            0.0,
-            cell_size_y * 1.0 + pos_y + (1 - cell_size_y),
-            // fg
-            fg.r,
-            fg.g,
-            fg.b,
-            // bg
-            bg.r,
-            bg.g,
-            bg.b,
-            // texcoord
-            tex_x_offset * x,
-            1.0 - tex_y_offset * (y + 1),
-        },
-    };
-    var buff = makeVao(vertices);
-    c.glBindVertexArray(@intCast(buff.vao));
-    c.glDrawElements(c.GL_TRIANGLES, 6, c.GL_UNSIGNED_INT, null);
-    buff.deinit();
+    drawSpriteAscii(x_min, y_min, fg, bg, 218);
+    drawSpriteAscii(x_max, y_max, fg, bg, 217);
+    drawSpriteAscii(x_min, y_max, fg, bg, 192);
+    drawSpriteAscii(x_max, y_min, fg, bg, 191);
 }
 
 /// Prints a string to the screen. It starts at the given cell_position, and will
@@ -488,7 +256,7 @@ pub fn drawSprite3d(
 pub fn print(cell_x: f32, cell_y: f32, fg: Color, bg: Color, string: []const u8) void {
     var x_position = cell_x;
     for (string) |char| {
-        drawSprite(x_position, cell_y, fg, bg, char);
+        drawSpriteAscii(x_position, cell_y, fg, bg, char);
         x_position += 1;
     }
 }
@@ -503,65 +271,64 @@ pub fn printC(
 ) void {
     var x_position = cell_x;
     for (string) |char| {
-        drawSpriteC(x_position, cell_y, fg, bg, char, font_size, font_size);
+        drawSpriteAsciiC(x_position, cell_y, fg, bg, char, font_size);
         x_position += 1 * font_size;
     }
 }
 
-pub fn drawQuadAtTarget(target: [3]f32, size: f32, color: Color) void {
-    const half_size = size / 2.0;
+// ---------------------------------------------
 
-    // Define the quad's vertices centered at the `target` position.
-    const vertices = [_][6]f32{
-        // Vertex 1: Top-right
-        [6]f32{ target[0] + half_size, target[1], target[2] + half_size, color.r, color.g, color.b },
-        [6]f32{ target[0] + half_size, target[1], target[2] - half_size, color.r, color.g, color.b },
-        [6]f32{ target[0] - half_size, target[1], target[2] - half_size, color.r, color.g, color.b },
-        [6]f32{ target[0] - half_size, target[1], target[2] + half_size, color.r, color.g, color.b },
-    };
-    c.glBindVertexArray(0);
-    var vao: c_uint = undefined;
-    c.glGenVertexArrays(1, &vao);
-    c.glBindVertexArray(vao);
+pub fn drawSpriteCameraC(
+    camera: *Camera,
+    cell_x: f32,
+    cell_y: f32,
+    fg: Color,
+    bg: Color,
+    ascii_ch: u32,
+    font_size: f32,
+) void {
+    const model = Camera.translateIdentity(.{ cell_x, cell_y, 0 });
+    const m = Camera.scaleMat4(model, font_size);
+    VaoBuffer.shd_basic.setMat4("projection", camera.projection_matrix);
+    VaoBuffer.shd_basic.setMat4("model", m);
+    VaoBuffer.shd_basic.setColor("fg", fg);
+    VaoBuffer.shd_basic.setColor("bg", bg);
+    //VaoBuffer.shd_basic.set2Float("position", @constCast(&[_]f32{ cell_x, cell_y }));
+    //VaoBuffer.shd_basic.setFloat("scalar", 1);
+    VaoBuffer.shd_basic.setFloat("texId", @floatFromInt(ascii_ch));
+    c.glBindVertexArray(VaoBuffer.vao);
+    c.glDrawElements(c.GL_TRIANGLES, 6, c.GL_UNSIGNED_INT, null);
+}
 
-    var vbo: u32 = 0;
-    c.glGenBuffers(1, &vbo);
-    c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
-    c.glBufferData(
-        c.GL_ARRAY_BUFFER,
-        vertices.len * @sizeOf(c.GLfloat),
-        &vertices,
-        c.GL_STATIC_DRAW,
-    );
+pub fn drawSpriteCamera(
+    camera: *Camera,
+    cell_x: f32,
+    cell_y: f32,
+    fg: Color,
+    bg: Color,
+    ascii_ch: u32,
+) void {
+    VaoBuffer.shd_basic.set2Float("offset", @constCast(&camera.offset));
+    VaoBuffer.shd_basic.setColor("fg", fg);
+    VaoBuffer.shd_basic.setColor("bg", bg);
+    VaoBuffer.shd_basic.set2Float("position", @constCast(&[_]f32{ cell_x, cell_y }));
+    VaoBuffer.shd_basic.setFloat("scalar", 1);
+    VaoBuffer.shd_basic.setFloat("texId", @floatFromInt(ascii_ch));
+    c.glBindVertexArray(VaoBuffer.vao);
+    c.glDrawElements(c.GL_TRIANGLES, 6, c.GL_UNSIGNED_INT, null);
+}
 
-    // Indices for drawing the quad as two triangles.
-    const indices = [_]u32{ 0, 1, 2, 2, 3, 0 };
+pub fn drawTestSprite(camera: *Camera) void {
+    _ = camera;
+    VaoBuffer.shd_basic.set2Float("position", @constCast(&[_]f32{ 10, 10 }));
+    //VaoBuffer.shd_basic.set2Float("offset", &camera.offset);
+    VaoBuffer.shd_basic.setColor("fg", WHITE);
+    VaoBuffer.shd_basic.setColor("bg", BLACK);
+    VaoBuffer.shd_basic.setFloat("scalar", 1);
+    VaoBuffer.shd_basic.setFloat("texId", 3);
 
-    // Upload the index buffer.
-    var ebo: u32 = 0;
-    c.glGenBuffers(1, &ebo);
-    c.glBindBuffer(c.GL_ELEMENT_ARRAY_BUFFER, ebo);
-    c.glBufferData(
-        c.GL_ELEMENT_ARRAY_BUFFER,
-        indices.len * @sizeOf(u32),
-        &indices,
-        c.GL_STATIC_DRAW,
-    );
-
-    const offset = @as(?*anyopaque, @ptrFromInt(0 * @sizeOf(f32)));
-    // Enable vertex attributes: position (3 floats) and color (3 floats).
-    c.glVertexAttribPointer(0, 3, c.GL_FLOAT, c.GL_FALSE, 6 * @sizeOf(f32), offset);
-    c.glEnableVertexAttribArray(0);
-
-    const fg_offset = @as(?*anyopaque, @ptrFromInt(3 * @sizeOf(f32)));
-    c.glVertexAttribPointer(1, 3, c.GL_FLOAT, c.GL_FALSE, 6 * @sizeOf(f32), fg_offset);
-    c.glEnableVertexAttribArray(1);
-
-    // Draw the quad using the index buffer.
-    // Create a VAO and VBO for the vertices.
-    c.glBindVertexArray(@intCast(vao));
-    c.glDrawElements(c.GL_TRIANGLES, indices.len, c.GL_UNSIGNED_INT, null);
-
-    // Cleanup (unbind VAO and buffers).
-    c.glBindVertexArray(0);
+    // Draw a larger sprite to make it easier to see
+    c.glBindVertexArray(VaoBuffer.vao);
+    c.glDrawElements(c.GL_TRIANGLES, 6, c.GL_UNSIGNED_INT, null);
+    checkGLError();
 }
